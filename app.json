@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "soaring-schedule",
+    "name": "翱翔课表",
     "slug": "soaring-schedule",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/soaring_schedule_icon.jpg",
     "scheme": "soaringschedule",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
