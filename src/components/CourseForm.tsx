@@ -108,7 +108,6 @@ const CourseForm: React.FC<CourseFormProps> = ({
       const selectedSemester = semesters.find(s => s.id === selectedSemesterId);
       if (selectedSemester) {
         const maxWeek = selectedSemester.weekCount;
-        const defaultWeekRange = `1-${maxWeek}`;
         
         setCourse(prev => {
           const updatedTimeSlots = prev.timeSlots.map(slot => {
@@ -145,8 +144,6 @@ const CourseForm: React.FC<CourseFormProps> = ({
   const [tempDayOfWeek, setTempDayOfWeek] = useState(1);
   const [tempClassSections, setTempClassSections] = useState<number[]>([1]);
   const [editingTimeSlotIndex, setEditingTimeSlotIndex] = useState(0);
-  // 周数选择状态
-  const [selectedWeeks, setSelectedWeeks] = useState<number[]>([1]);
   const [weekSelectionMode, setWeekSelectionMode] = useState<'single' | 'range'>('single');
   const [weekRangeStart, setWeekRangeStart] = useState<number | null>(null);
   const [weekRangeEnd, setWeekRangeEnd] = useState<number | null>(null);
@@ -157,16 +154,6 @@ const CourseForm: React.FC<CourseFormProps> = ({
   // 处理颜色选择
   const handleColorSelect = (color: string) => {
     setCourse(prev => ({ ...prev, color }));
-  };
-
-  // 处理周数选择
-  const handleWeekSelect = (start: number, end: number) => {
-    setTempWeekRange(`${start}-${end}`);
-  };
-
-  // 处理周数模式选择
-  const handleRepeatRuleSelect = (rule: RepeatRule) => {
-    setTempRepeatRule(rule);
   };
 
   // 处理周数选择确定
@@ -181,12 +168,6 @@ const CourseForm: React.FC<CourseFormProps> = ({
       return { ...prev, timeSlots: newTimeSlots };
     });
     setShowWeekPicker(false);
-  };
-
-  // 处理时间选择
-  const handleTimeSelect = (dayOfWeek: number, sections: number[]) => {
-    setTempDayOfWeek(dayOfWeek);
-    setTempClassSections(sections);
   };
 
   // 处理时间选择确定

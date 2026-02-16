@@ -241,9 +241,6 @@ const CourseImportWizard: React.FC<CourseImportWizardProps> = ({
       ? parsedData.semesters.find(s => s.dataSemester === selectedDataSemester)
       : null;
       
-    const shouldShowAutoCreate = selectedParsedSemester && 
-      !semesters.some(s => s.name === selectedParsedSemester.name);
-      
     const filteredCourses = selectedDataSemester 
       ? parsedData.courses.filter(c => c.dataSemester === selectedDataSemester)
       : parsedData.courses;
@@ -313,7 +310,7 @@ const CourseImportWizard: React.FC<CourseImportWizardProps> = ({
                   onPress={handleAutoCreateSemester}
                 >
                   <Text style={styles.actionButtonText}>
-                    创建"{selectedParsedSemester?.name}"学期
+                    创建「{selectedParsedSemester?.name}」学期
                   </Text>
                 </TouchableOpacity>
               )}

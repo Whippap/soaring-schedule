@@ -1,5 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -35,27 +35,27 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
   const { semesters, updateSemesterSectionTime, loadSettings } = useSettingsStore();
   
   // 获取当前学期的信息
-  const getCurrentSemester = () => {
+  const getCurrentSemester = useCallback(() => {
     return semesters.find(s => s.id === semesterId) || semesters[0];
-  };
+  }, [semesters, semesterId]);
   
-  const getSectionCountFromSemester = () => {
+  const getSectionCountFromSemester = useCallback(() => {
     const semester = getCurrentSemester();
     return semester?.sectionCount || 10;
-  };
+  }, [getCurrentSemester]);
   
-  const getSectionTimesFromSemester = () => {
+  const getSectionTimesFromSemester = useCallback(() => {
     const semester = getCurrentSemester();
     return semester?.sectionTimes || [];
-  };
+  }, [getCurrentSemester]);
   
-  const getActualSectionCount = () => {
+  const getActualSectionCount = useCallback(() => {
     return sectionCount || getSectionCountFromSemester();
-  };
+  }, [sectionCount, getSectionCountFromSemester]);
   
-  const getActualSectionTimes = () => {
+  const getActualSectionTimes = useCallback(() => {
     return initialSectionTimes.length > 0 ? initialSectionTimes : getSectionTimesFromSemester();
-  };
+  }, [initialSectionTimes, getSectionTimesFromSemester]);
   
   // 从初始时间设置中推断每节课时长相同的设置和单节课时长
   const inferDurationSettings = (sectionTimes: any[]) => {
@@ -156,7 +156,7 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
       setIsSameDuration(durationSettings.isSameDuration);
       setSingleDuration(durationSettings.singleDuration);
     }
-  }, [visible, loadSettings, initialSectionTimes]);
+  }, [visible, loadSettings, initialSectionTimes, getActualSectionCount, getActualSectionTimes]);
 
   // 当 sectionCount 变化时，调整课程时间列表
   useEffect(() => {
@@ -209,7 +209,7 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
         setLocalSectionTimes(newSectionTimes);
       }
     }
-  }, [visible, sectionCount, localSectionTimes]);
+  }, [visible, sectionCount, localSectionTimes, getActualSectionCount]);
 
   // 检查时间是否有重叠
   const checkTimeOverlap = (times: any[]): { hasOverlap: boolean, message: string } => {
@@ -314,21 +314,6 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
     const newTimes = [...localSectionTimes];
     newTimes[index] = { start, end };
     setLocalSectionTimes(newTimes);
-  };
-
-  // 时间选择组件
-  const TimeDisplay = ({ value, onPress }: { value: string, onPress: () => void }) => {
-    return (
-      <View>
-        <TouchableOpacity 
-          style={styles.timeDisplay} 
-          onPress={onPress}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.timeDisplayText}>{value}</Text>
-        </TouchableOpacity>
-      </View>
-    );
   };
 
   // 时间选择器模态框
@@ -464,7 +449,7 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.infoText}>
                 <Text style={styles.infoTextContent}>点击时间可以修改每节课的开始和结束时间</Text>
-                <Text style={styles.infoTextContent}>选择"每节课时长相同"时，只需设置一节课时长，系统会自动计算所有节次时间</Text>
+                <Text style={styles.infoTextContent}>选择「每节课时长相同」时，只需设置一节课时长，系统会自动计算所有节次时间</Text>
               </View>
               
               <View style={styles.section}>

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { addDays, format } from 'date-fns';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Alert,
   Animated,
@@ -92,7 +92,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
   }, [semesters, currentDate, getCurrentSemester]);
 
   // 获取指定日期对应的学期
-  const getSemesterForDate = (date: Date): Semester => {
+  const getSemesterForDate = useCallback((date: Date): Semester => {
     const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
     for (const semester of semesters) {
@@ -133,7 +133,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
       sectionCount: 10,
       sectionTimes: defaultSectionTimes.slice(0, 10)
     };
-  };
+  }, [semesters]);
 
   // 获取显示范围内所有日期的最大节数
   const getMaxSectionCount = (): number => {
@@ -292,7 +292,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
   };
   
   // 计算指定日期对应的学期周数
-  const getWeekNumberForDate = (date: Date): number => {
+  const getWeekNumberForDate = useCallback((date: Date): number => {
     // 获取日期对应的学期
     const dateSemester = getSemesterForDate(date);
     
@@ -308,7 +308,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
     
     // 确保周数不超过学期的周数
     return Math.min(weekNum, dateSemester.weekCount);
-  };
+  }, [getSemesterForDate]);
   
   // 检查周数是否在课程的周数范围内
   const isWeekInRange = (weekNum: number, weekRange: string): boolean => {
@@ -391,7 +391,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
         setCurrentWeek(weekNum);
       }
     }
-  }, [currentSemester, currentDate]);
+  }, [currentSemester, currentDate, getWeekNumberForDate]);
 
   // 检查当前是否是本周
   useEffect(() => {
