@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
+  Modal,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -31,6 +32,8 @@ export default function ScheduleScreen() {
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [editingCourseIndex, setEditingCourseIndex] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('课程');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourseIndex, setSelectedCourseIndex] = useState<number | null>(null);
   
   // 学期管理相关状态
   const {
@@ -38,7 +41,8 @@ export default function ScheduleScreen() {
     addSemester,
     updateSemester,
     deleteSemester,
-    loadSettings
+    loadSettings,
+    primaryColor
   } = useSettingsStore();
   
   const [showTimeTableEditor, setShowTimeTableEditor] = useState(false);
@@ -130,20 +134,30 @@ export default function ScheduleScreen() {
     const semester = semesters.find(s => s.id === item.semesterId);
     
     return (
-      <View style={styles.itemCard}>
+      <TouchableOpacity 
+        style={styles.itemCard}
+        onPress={() => {
+          setSelectedCourse(item);
+          setSelectedCourseIndex(originalIndex);
+        }}
+      >
         <View style={styles.itemContent}>
           <View style={styles.itemHeader}>
             <Text style={styles.itemTitle}>{item.name}</Text>
             <View style={styles.itemActions}>
               <TouchableOpacity 
-                style={styles.editButton}
-                onPress={() => handleEditCourse(originalIndex)}
+                style={styles.editButtonSmall}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleEditCourse(originalIndex);
+                }}
               >
                 <Ionicons name="pencil-outline" size={20} color="#3498db" />
               </TouchableOpacity>
               <TouchableOpacity 
-                style={styles.deleteButton}
-                onPress={() => {
+                style={styles.deleteButtonSmall}
+                onPress={(e) => {
+                  e.stopPropagation();
                   Alert.alert(
                     '确认删除',
                     '确定要删除这门课程吗？',
@@ -180,7 +194,7 @@ export default function ScheduleScreen() {
             <Text style={styles.itemDetail}>教师: {item.teacher}</Text>
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -188,7 +202,7 @@ export default function ScheduleScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* 顶栏切换按钮 */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: primaryColor }]}>
           <View style={styles.headerContent}>
             <TouchableOpacity 
               style={styles.headerToggleButton}
@@ -395,6 +409,110 @@ export default function ScheduleScreen() {
         onSave={handleSaveSemester}
         initialSemester={semesterToEdit || undefined}
       />
+
+      {/* 课程详情模态框 */}
+      <Modal
+        visible={!!selectedCourse}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedCourse(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setSelectedCourse(null)}
+          />
+          <View style={styles.modalContent}>
+            {selectedCourse && (
+              <>
+                <Text style={styles.modalTitle}>课程详情</Text>
+                <Text style={styles.modalCourseName}>{selectedCourse.name}</Text>
+                
+                {selectedCourse.code && (
+                  <Text style={styles.modalDetail}>课程代码: {selectedCourse.code}</Text>
+                )}
+                {selectedCourse.location && (
+                  <Text style={styles.modalDetail}>上课地点: {selectedCourse.location}</Text>
+                )}
+                {selectedCourse.teacher && (
+                  <Text style={styles.modalDetail}>任课老师: {selectedCourse.teacher}</Text>
+                )}
+                {selectedCourse.credits && (
+                  <Text style={styles.modalDetail}>学分: {selectedCourse.credits}</Text>
+                )}
+                {selectedCourse.assessmentMethod && (
+                  <Text style={styles.modalDetail}>考核方式: {selectedCourse.assessmentMethod}</Text>
+                )}
+                
+                <Text style={styles.modalDetailTitle}>上课时间:</Text>
+                {selectedCourse.timeSlots.map((slot, index) => {
+                  const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+                  return (
+                    <Text key={index} style={styles.modalTimeSlot}>
+                      周{weekDays[slot.dayOfWeek - 1]} {slot.classSections.join('-')}节 ({slot.weekRange}周{slot.repeatRule ? `, ${slot.repeatRule}` : ''})
+                    </Text>
+                  );
+                })}
+                
+                {selectedCourse.notes && (
+                  <>
+                    <Text style={styles.modalDetailTitle}>备注:</Text>
+                    <Text style={styles.modalNotes}>{selectedCourse.notes}</Text>
+                  </>
+                )}
+                
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={[styles.modalActionButton, styles.modalEditButton]}
+                    onPress={() => {
+                      if (selectedCourseIndex !== null) {
+                        handleEditCourse(selectedCourseIndex);
+                      }
+                      setSelectedCourse(null);
+                    }}
+                  >
+                    <Text style={styles.modalActionButtonText}>编辑</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalActionButton, styles.modalDeleteButton]}
+                    onPress={() => {
+                      Alert.alert(
+                        '确认删除',
+                        '确定要删除这门课程吗？',
+                        [
+                          {
+                            text: '取消',
+                            style: 'cancel'
+                          },
+                          {
+                            text: '删除',
+                            style: 'destructive',
+                            onPress: () => {
+                              if (selectedCourseIndex !== null) {
+                                deleteCourse(selectedCourseIndex);
+                              }
+                              setSelectedCourse(null);
+                            }
+                          }
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={styles.modalActionButtonText}>删除</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalActionButton, styles.modalCloseButton]}
+                    onPress={() => setSelectedCourse(null)}
+                  >
+                    <Text style={styles.modalActionButtonText}>关闭</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -457,7 +575,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16
   },
-  deleteButton: {
+  deleteButtonLarge: {
     padding: 16,
     marginRight: 8
   },
@@ -477,10 +595,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 15
   },
-  editButton: {
+  editButtonSmall: {
     padding: 5
   },
-  deleteButton: {
+  deleteButtonSmall: {
     padding: 5
   },
   itemDetail: {
@@ -710,5 +828,87 @@ const styles = StyleSheet.create({
   semesterFilterOptionTextActive: {
     color: 'white',
     fontWeight: '500'
+  },
+  // 课程详情模态框样式
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)'
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '85%',
+    maxHeight: '70%'
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 15,
+    color: '#333'
+  },
+  modalCourseName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333'
+  },
+  modalDetail: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8
+  },
+  modalDetailTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginTop: 12,
+    marginBottom: 6
+  },
+  modalTimeSlot: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+    paddingLeft: 10
+  },
+  modalNotes: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    gap: 10
+  },
+  modalActionButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center'
+  },
+  modalActionButtonText: {
+    color: 'white',
+    fontWeight: '500'
+  },
+  modalEditButton: {
+    backgroundColor: '#3498db'
+  },
+  modalDeleteButton: {
+    backgroundColor: '#e74c3c'
+  },
+  modalCloseButton: {
+    backgroundColor: '#95a5a6'
   }
 });

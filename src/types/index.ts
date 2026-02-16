@@ -1,6 +1,6 @@
 // 重复规则枚举
 export enum RepeatRule {
-  ALL = '全部',
+  ALL = '',
   ODD = '仅单周',
   EVEN = '仅双周'
 }

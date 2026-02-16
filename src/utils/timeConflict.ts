@@ -90,8 +90,8 @@ const parseWeekRange = (weekRange: string): { min: number; max: number } => {
  * @returns 是否有重叠
  */
 const isRepeatRuleOverlap = (rule1: string, rule2: string): boolean => {
-  // 全部规则与任何规则都重叠
-  if (rule1 === '全部' || rule2 === '全部') {
+  // 空字符串规则（即原来的"全部"）与任何规则都重叠
+  if (rule1 === '' || rule2 === '') {
     return true;
   }
   // 单周和双周不重叠

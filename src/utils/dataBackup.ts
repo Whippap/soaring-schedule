@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import RNFS from 'react-native-fs';
-import * as DocumentPicker from 'react-native-document-picker';
-import Share from 'react-native-share';
-import { Platform } from 'react-native';
+import { File, Paths } from 'expo-file-system';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Sharing from 'expo-sharing';
+import { Alert } from 'react-native';
 
 // 存储键名
 const STORAGE_KEYS = {
@@ -48,21 +48,29 @@ export const exportData = async (): Promise<void> => {
 
     // 创建备份文件
     const fileName = `soaring-schedule-backup-${new Date().toISOString().split('T')[0]}.json`;
-    const filePath = Platform.OS === 'ios' 
-      ? `${RNFS.DocumentDirectoryPath}/${fileName}` 
-      : `${RNFS.ExternalDirectoryPath}/${fileName}`;
+    const file = new File(Paths.document, fileName);
 
     // 写入文件
-    await RNFS.writeFile(filePath, jsonString, 'utf8');
+    await file.write(jsonString);
 
-    // 分享文件
-    const shareOptions = {
-      title: '课程表备份',
-      url: `file://${filePath}`,
-      type: 'application/json'
-    };
-
-    await Share.open(shareOptions);
+    // 检查是否支持分享
+    const isAvailable = await Sharing.isAvailableAsync();
+    
+    if (isAvailable) {
+      // 使用分享功能让用户选择保存位置
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'application/json',
+        dialogTitle: '课程表备份',
+        UTI: 'public.json'
+      });
+    } else {
+      // 如果分享不可用，提示用户文件位置
+      Alert.alert(
+        '导出成功',
+        `文件已保存到: ${file.uri}`,
+        [{ text: '确定' }]
+      );
+    }
   } catch (error) {
     console.error('导出数据失败:', error);
     throw error;
@@ -75,13 +83,19 @@ export const exportData = async (): Promise<void> => {
 export const importData = async (): Promise<boolean> => {
   try {
     // 选择文件
-    const result = await DocumentPicker.pickSingle({
-      type: [DocumentPicker.types.allFiles],
-      copyTo: 'cachesDirectory'
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/json',
+      copyToCacheDirectory: true
     });
 
+    if (result.canceled) {
+      return false;
+    }
+
     // 读取文件内容
-    const jsonString = await RNFS.readFile(result.uri, 'utf8');
+    const fileAsset = result.assets[0];
+    const file = new File(fileAsset.uri);
+    const jsonString = await file.text();
     const backupData: BackupData = JSON.parse(jsonString);
 
     // 验证备份数据

@@ -33,6 +33,19 @@ const CourseForm: React.FC<CourseFormProps> = ({
   
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>('');
   
+  const [course, setCourse] = useState<Course>({
+    name: '',
+    semesterId: '',
+    timeSlots: [{ weekRange: '1-20', repeatRule: RepeatRule.ALL, dayOfWeek: 1, classSections: [1] }],
+    code: '',
+    location: '',
+    credits: undefined,
+    teacher: '',
+    assessmentMethod: undefined,
+    notes: '',
+    color: '#3498db'
+  });
+  
   useEffect(() => {
     if (visible) {
       const current = getCurrentSemester();
@@ -50,33 +63,44 @@ const CourseForm: React.FC<CourseFormProps> = ({
       
       setSelectedSemesterId(newSemesterId);
       
-      // 如果不是编辑课程，根据选中的学期初始化课程
-      if (!initialCourse && newSemesterId) {
-        const selectedSemester = semesters.find(s => s.id === newSemesterId);
-        const maxWeek = selectedSemester?.weekCount || 20;
-        const defaultWeekRange = `1-${maxWeek}`;
-        
-        setCourse(prev => ({
-          ...prev,
-          semesterId: newSemesterId,
-          timeSlots: [{ weekRange: defaultWeekRange, repeatRule: RepeatRule.ALL, dayOfWeek: 1, classSections: [1] }]
-        }));
+      // 根据是否编辑课程来初始化状态
+      if (initialCourse) {
+        // 编辑模式：使用 initialCourse 的数据
+        setCourse({
+          name: initialCourse.name,
+          semesterId: initialCourse.semesterId,
+          timeSlots: initialCourse.timeSlots,
+          code: initialCourse.code || '',
+          location: initialCourse.location || '',
+          credits: initialCourse.credits,
+          teacher: initialCourse.teacher || '',
+          assessmentMethod: initialCourse.assessmentMethod,
+          notes: initialCourse.notes || '',
+          color: initialCourse.color || '#3498db'
+        });
+      } else {
+        // 新增模式：根据选中的学期初始化课程
+        if (newSemesterId) {
+          const selectedSemester = semesters.find(s => s.id === newSemesterId);
+          const maxWeek = selectedSemester?.weekCount || 20;
+          const defaultWeekRange = `1-${maxWeek}`;
+          
+          setCourse({
+            name: '',
+            semesterId: newSemesterId,
+            timeSlots: [{ weekRange: defaultWeekRange, repeatRule: RepeatRule.ALL, dayOfWeek: 1, classSections: [1] }],
+            code: '',
+            location: '',
+            credits: undefined,
+            teacher: '',
+            assessmentMethod: undefined,
+            notes: '',
+            color: '#3498db'
+          });
+        }
       }
     }
   }, [visible, initialCourse, semesters, getCurrentSemester]);
-  
-  const [course, setCourse] = useState<Course>({
-    name: initialCourse?.name || '',
-    semesterId: initialCourse?.semesterId || '',
-    timeSlots: initialCourse?.timeSlots || [{ weekRange: '1-20', repeatRule: RepeatRule.ALL, dayOfWeek: 1, classSections: [1] }],
-    code: initialCourse?.code || '',
-    location: initialCourse?.location || '',
-    credits: initialCourse?.credits,
-    teacher: initialCourse?.teacher || '',
-    assessmentMethod: initialCourse?.assessmentMethod,
-    notes: initialCourse?.notes || '',
-    color: initialCourse?.color || '#3498db'
-  });
   
   // 当选择学期变化时，更新课程的时间槽以符合新学期的限制
   useEffect(() => {
@@ -553,7 +577,7 @@ const CourseForm: React.FC<CourseFormProps> = ({
           }}
         >
           <Text style={styles.timeSlotLabel}>周数</Text>
-          <Text style={styles.timeSlotValue}>{slot.weekRange}周 ({slot.repeatRule})</Text>
+          <Text style={styles.timeSlotValue}>{slot.weekRange}周{slot.repeatRule ? ` (${slot.repeatRule})` : ''}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 

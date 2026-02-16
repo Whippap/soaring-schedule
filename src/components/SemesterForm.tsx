@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   Modal,
@@ -19,15 +19,21 @@ interface SemesterFormProps {
   onClose: () => void;
   onSave: (semester: Omit<Semester, 'id'>) => void;
   initialSemester?: Semester;
+  minWeekCount?: number;
+  maxSectionCount?: number;
 }
 
 const SemesterForm: React.FC<SemesterFormProps> = ({ 
   visible, 
   onClose, 
   onSave, 
-  initialSemester 
+  initialSemester,
+  minWeekCount,
+  maxSectionCount 
 }) => {
   const { height: screenHeight } = useWindowDimensions();
+  
+  console.log('SemesterForm 收到 initialSemester:', initialSemester);
   
   // 表单状态
   const [semesterName, setSemesterName] = useState(initialSemester?.name || '');
@@ -38,8 +44,31 @@ const SemesterForm: React.FC<SemesterFormProps> = ({
   
   // 日期选择器状态
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(initialSemester?.startDate ? new Date(initialSemester.startDate) : new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (initialSemester?.startDate) {
+      const [year, month, day] = initialSemester.startDate.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date();
+  });
   const [showTimeTableEditor, setShowTimeTableEditor] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      console.log('SemesterForm visible 变化，更新状态:', initialSemester);
+      setSemesterName(initialSemester?.name || '');
+      setSemesterStartDate(initialSemester?.startDate || '');
+      setSemesterWeekCount(initialSemester?.weekCount?.toString() || '20');
+      setSemesterSectionCount(initialSemester?.sectionCount?.toString() || '10');
+      setSemesterSectionTimes(initialSemester?.sectionTimes || []);
+      if (initialSemester?.startDate) {
+        const [year, month, day] = initialSemester.startDate.split('-').map(Number);
+        setSelectedDate(new Date(year, month - 1, day));
+      } else {
+        setSelectedDate(new Date());
+      }
+    }
+  }, [visible, initialSemester]);
 
   // 处理时间设置更新
   const handleTimeTableUpdate = (updatedSectionTimes: any[]) => {
@@ -72,14 +101,52 @@ const SemesterForm: React.FC<SemesterFormProps> = ({
       return;
     }
 
+    if (minWeekCount && weekCount < minWeekCount) {
+      Alert.alert(
+        '提示', 
+        `学期周数不能小于课程所需的最小周数(${minWeekCount}周)，否则课程无法完整显示。是否继续？`,
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '继续', 
+            onPress: () => doSave(weekCount) 
+          }
+        ]
+      );
+      return;
+    }
+
     const sectionCount = parseInt(semesterSectionCount);
     if (isNaN(sectionCount) || sectionCount <= 0) {
       Alert.alert('提示', '请输入有效的课程节数');
       return;
     }
 
+    if (maxSectionCount && sectionCount < maxSectionCount) {
+      Alert.alert(
+        '提示', 
+        `每天课程节数不能小于课程所需的最小节数(${maxSectionCount}节)，否则课程无法完整显示。是否继续？`,
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '继续', 
+            onPress: () => doSave(weekCount) 
+          }
+        ]
+      );
+      return;
+    }
+
+    doSave(weekCount);
+  };
+
+  const doSave = (weekCount: number) => {
+    const sectionCount = parseInt(semesterSectionCount);
+
     // 计算结束日期（开始日期加上周数 - 1天）
-    const startDate = new Date(semesterStartDate);
+    // 使用本地时间创建日期对象，避免时区问题
+    const [startYear, startMonth, startDay] = semesterStartDate.split('-').map(Number);
+    const startDate = new Date(startYear, startMonth - 1, startDay);
     const endDate = new Date(startDate);
     endDate.setDate(startDate.getDate() + (weekCount * 7) - 1);
     // 使用本地时间格式化日期，避免时区问题
@@ -214,6 +281,11 @@ const SemesterForm: React.FC<SemesterFormProps> = ({
                     keyboardType="numeric"
                   />
                 </View>
+                {minWeekCount && (
+                  <Text style={styles.minWeekHint}>
+                    * 课程需要至少 {minWeekCount} 周
+                  </Text>
+                )}
               </View>
 
               <View style={styles.settingItem}>
@@ -226,6 +298,11 @@ const SemesterForm: React.FC<SemesterFormProps> = ({
                     keyboardType="numeric"
                   />
                 </View>
+                {maxSectionCount && (
+                  <Text style={styles.minWeekHint}>
+                    * 课程需要至少 {maxSectionCount} 节
+                  </Text>
+                )}
               </View>
 
               <View style={styles.settingItem}>
@@ -374,6 +451,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     paddingHorizontal: 10,
     textAlign: 'center'
+  },
+  minWeekHint: {
+    fontSize: 12,
+    color: '#e74c3c',
+    marginTop: 5
   },
   dateInput: {
     width: 120,

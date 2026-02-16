@@ -8,6 +8,7 @@ interface CourseState {
   updateCourse: (index: number, course: Course) => Promise<void>;
   deleteCourse: (index: number) => Promise<void>;
   clearAllCourses: () => Promise<void>;
+  removeCoursesBySemester: (semesterId: string) => Promise<void>;
   loadData: () => Promise<void>;
   adjustCoursesForSemester: (semesterId: string, maxWeek: number, maxSection: number) => Promise<void>;
 }
@@ -37,12 +38,30 @@ export const useCourseStore = create<CourseState>((set) => ({
     set({ courses: [] });
     await AsyncStorage.removeItem(COURSES_STORAGE_KEY);
   },
+  removeCoursesBySemester: async (semesterId) => {
+    const newCourses = useCourseStore.getState().courses.filter(course => course.semesterId !== semesterId);
+    set({ courses: newCourses });
+    await AsyncStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(newCourses));
+  },
   loadData: async () => {
     try {
       // 加载课程数据
       const storedCourses = await AsyncStorage.getItem(COURSES_STORAGE_KEY);
       if (storedCourses) {
-        set({ courses: JSON.parse(storedCourses) });
+        const parsedCourses = JSON.parse(storedCourses);
+        // 数据迁移：确保所有课程都有 location 字段，并且把 "全部" 重复规则改为空字符串
+        const migratedCourses = parsedCourses.map((course: any) => ({
+          ...course,
+          location: course.location || '',
+          timeSlots: course.timeSlots?.map((slot: any) => ({
+            ...slot,
+            repeatRule: slot.repeatRule === '全部' ? '' : slot.repeatRule
+          })) || []
+        }));
+        console.log('加载课程数据:', migratedCourses);
+        set({ courses: migratedCourses });
+        // 保存迁移后的数据
+        await AsyncStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(migratedCourses));
       }
     } catch (error) {
       console.error('Failed to load data:', error);

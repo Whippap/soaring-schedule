@@ -26,7 +26,22 @@ interface CourseScheduleProps {
 
 const SIDEBAR_WIDTH = 60; // 侧边栏宽度
 const MIN_COLUMN_WIDTH = 60; // 最小列宽度
-const FIXED_ROW_HEIGHT = 50; // 固定行高度
+const FIXED_ROW_HEIGHT = 75; // 固定行高度
+
+// 截断文本的辅助函数
+const truncateText = (text: string, maxLength: number = 12): string => {
+  if (!text || text.length <= maxLength) {
+    return text;
+  }
+  return text.slice(0, maxLength) + '...';
+};
+
+// 去掉校区信息的辅助函数
+const removeCampusFromLocation = (location: string): string => {
+  if (!location) return '';
+  // 移除常见的校区名称
+  return location.replace(/(长安|翠华|雁塔|未央|沣东|草堂|友谊|太白|曲江)\s*校区\s*/g, '').trim();
+};
 
 // 课节时间配置
 const defaultSectionTimes = [
@@ -59,14 +74,13 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
   const weekChangeAnim = useRef(new Animated.Value(1)).current;
   
   // 从设置存储中获取时间表数据
-  const { semesters, getCurrentSemester } = useSettingsStore();
+  const { semesters, getCurrentSemester, primaryColor } = useSettingsStore();
   
   // 使用 state 来存储当前学期，确保在状态变化时更新
   const [currentSemester, setCurrentSemester] = useState(getCurrentSemester(currentDate));
   
   // 使用 state 来存储当前学期的相关信息
   const [semesterWeekCount, setSemesterWeekCount] = useState(currentSemester?.weekCount || 20);
-  const [semesterStartDate, setSemesterStartDate] = useState(currentSemester?.startDate || new Date().toISOString().split('T')[0]);
   const [semesterName, setSemesterName] = useState(currentSemester?.name || '假期');
   
   // 当 semesters、currentDate 变化时，重新获取当前学期
@@ -74,22 +88,36 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
     const newSemester = getCurrentSemester(currentDate);
     setCurrentSemester(newSemester);
     setSemesterWeekCount(newSemester?.weekCount || 20);
-    setSemesterStartDate(newSemester?.startDate || new Date().toISOString().split('T')[0]);
     setSemesterName(newSemester?.name || '假期');
   }, [semesters, currentDate, getCurrentSemester]);
 
   // 获取指定日期对应的学期
   const getSemesterForDate = (date: Date): Semester => {
+    const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
     for (const semester of semesters) {
       const [startYear, startMonth, startDay] = semester.startDate.split('-').map(Number);
       const startDate = new Date(startYear, startMonth - 1, startDay);
       
-      const [endYear, endMonth, endDay] = semester.endDate.split('-').map(Number);
-      const endDate = new Date(endYear, endMonth - 1, endDay);
+      // 计算学期开始是星期几 (0=周日, 1=周一, ..., 6=周六)
+      const startDayOfWeek = startDate.getDay();
       
-      const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      // 找到学期开始的那一周的周一
+      let weekStart = new Date(startDate);
+      if (startDayOfWeek === 0) {
+        // 如果开始日期是周日，上周一就是学期开始前6天
+        weekStart.setDate(startDate.getDate() - 6);
+      } else if (startDayOfWeek !== 1) {
+        // 如果不是周一，减去(星期几-1)天得到周一
+        weekStart.setDate(startDate.getDate() - (startDayOfWeek - 1));
+      }
       
-      if (checkDate >= startDate && checkDate <= endDate) {
+      // 计算学期最后一天（基于周数）
+      const lastDay = new Date(weekStart);
+      lastDay.setDate(weekStart.getDate() + semester.weekCount * 7 - 1);
+      
+      // 检查：从学期第一周的周一到最后一周的周日
+      if (checkDate >= weekStart && checkDate <= lastDay) {
         return semester;
       }
     }
@@ -265,15 +293,21 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
   
   // 计算指定日期对应的学期周数
   const getWeekNumberForDate = (date: Date): number => {
-    if (!semesterStartDate) return 1;
+    // 获取日期对应的学期
+    const dateSemester = getSemesterForDate(date);
     
-    const [startYear, startMonth, startDay] = semesterStartDate.split('-').map(Number);
+    if (dateSemester.id === 'default') return 1;
+    
+    const [startYear, startMonth, startDay] = dateSemester.startDate.split('-').map(Number);
     const startDate = new Date(startYear, startMonth - 1, startDay);
     const displayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
     const diffTime = displayDate.getTime() - startDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(1, Math.floor(diffDays / 7) + 1);
+    const weekNum = Math.max(1, Math.floor(diffDays / 7) + 1);
+    
+    // 确保周数不超过学期的周数
+    return Math.min(weekNum, dateSemester.weekCount);
   };
   
   // 检查周数是否在课程的周数范围内
@@ -341,44 +375,23 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
 
   // 计算当前周数和学期状态
   useEffect(() => {
-    if (semesterStartDate && semesterWeekCount) {
-      // 使用正确的方式解析日期，避免时区问题
-      const [startYear, startMonth, startDay] = semesterStartDate.split('-').map(Number);
-      const startDate = new Date(startYear, startMonth - 1, startDay);
-      
+    if (currentSemester) {
       // 使用用户选择的显示日期，而不是今天的日期
       const displayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-      
-      const diffTime = displayDate.getTime() - startDate.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-      const weekNum = Math.max(1, Math.floor(diffDays / 7) + 1);
-      
-      console.log('计算周数:', {
-        semesterStartDate,
-        semesterWeekCount,
-        startDate,
-        displayDate,
-        diffDays,
-        weekNum
-      });
+      const weekNum = getWeekNumberForDate(displayDate);
       
       // 如果当前日期在开学日期之前，显示第1周
-      if (diffDays < 0) {
+      if (weekNum < 1) {
         setCurrentWeek(1);
       } 
       // 如果超过学期周数，显示学期结束
-      else if (weekNum > semesterWeekCount) {
-        setCurrentWeek(semesterWeekCount);
+      else if (weekNum > currentSemester.weekCount) {
+        setCurrentWeek(currentSemester.weekCount);
       } else {
         setCurrentWeek(weekNum);
       }
     }
-  }, [semesterStartDate, semesterWeekCount, currentDate]);
-
-  // 当 currentSemester 变化时，重新加载数据
-  useEffect(() => {
-    console.log('当前学期变化:', currentSemester);
-  }, [currentSemester]);
+  }, [currentSemester, currentDate]);
 
   // 检查当前是否是本周
   useEffect(() => {
@@ -392,7 +405,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
   return (
     <View style={styles.container}>
       {/* 顶栏 - 显示日期、周数信息和添加按钮 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: primaryColor }]}>
         <View style={styles.dateInfo}>
           <Text style={styles.currentDate}>{format(currentDate, 'yyyy/MM/dd')}</Text>
           <Text style={styles.weekInfoText}>
@@ -543,6 +556,19 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
                             const endSection = Math.max(...targetSlot.classSections);
                             const courseHeight = (endSection - startSection + 1) * rowHeight;
                             
+                            // 格式化课程显示文本
+                            const sectionCount = targetSlot.classSections.length;
+                            const nameMaxLength = Math.min(4 * sectionCount, 16); // 每个单元格4个字符，最多16个
+                            const locationMaxLength = Math.min(3 * sectionCount, 12); // 每个单元格3个字符，最多12个
+                            
+                            let displayText = truncateText(course.name, nameMaxLength);
+                            if (course.location && course.location.trim() !== '') {
+                              const shortLocation = removeCampusFromLocation(course.location);
+                              if (shortLocation) {
+                                displayText = `${displayText}\n(${truncateText(shortLocation, locationMaxLength)})`;
+                              }
+                            }
+                            
                             return (
                               <TouchableOpacity
                                 style={[
@@ -563,14 +589,9 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
                                 }}
                                 activeOpacity={0.8}
                               >
-                                <Text style={styles.courseName} numberOfLines={2}>
-                                  {course.name}
+                                <Text style={styles.courseName} numberOfLines={3}>
+                                  {displayText}
                                 </Text>
-                                {course.location && (
-                                  <Text style={styles.courseLocation} numberOfLines={1}>
-                                    {course.location}
-                                  </Text>
-                                )}
                               </TouchableOpacity>
                             );
                           }
@@ -624,7 +645,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
                 <Text style={styles.modalDetailTitle}>上课时间:</Text>
                 {selectedCourse.timeSlots.map((slot, index) => (
                   <Text key={index} style={styles.modalTimeSlot}>
-                    {weekDays[slot.dayOfWeek - 1]} {slot.classSections.join('-')}节 ({slot.weekRange}周, {slot.repeatRule})
+                    {weekDays[slot.dayOfWeek - 1]} {slot.classSections.join('-')}节 ({slot.weekRange}周{slot.repeatRule ? `, ${slot.repeatRule}` : ''})
                   </Text>
                 ))}
                 
@@ -691,7 +712,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
       <TouchableOpacity 
         style={[
           styles.weekPrevButton, 
-          { left: buttonSpacing }
+          { left: buttonSpacing, backgroundColor: primaryColor }
         ]} 
         onPress={goToPreviousWeek}
       >
@@ -702,7 +723,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
         <TouchableOpacity 
           style={[
             styles.weekCurrentButton,
-            { left: '50%', marginLeft: -40 }
+            { left: '50%', marginLeft: -40, backgroundColor: '#2ecc71' }
           ]} 
           onPress={goToCurrentWeek}
         >
@@ -713,7 +734,7 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
       <TouchableOpacity 
         style={[
           styles.weekNextButton, 
-          { right: buttonSpacing }
+          { right: buttonSpacing, backgroundColor: primaryColor }
         ]} 
         onPress={goToNextWeek}
       >
@@ -965,7 +986,6 @@ const styles = StyleSheet.create({
   weekPrevButton: {
     position: 'absolute',
     bottom: 20,
-    backgroundColor: '#3498db',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 30,
@@ -983,7 +1003,6 @@ const styles = StyleSheet.create({
   weekNextButton: {
     position: 'absolute',
     bottom: 20,
-    backgroundColor: '#3498db',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 30,
@@ -1001,7 +1020,6 @@ const styles = StyleSheet.create({
   weekCurrentButton: {
     position: 'absolute',
     bottom: 20,
-    backgroundColor: '#2ecc71',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 30,

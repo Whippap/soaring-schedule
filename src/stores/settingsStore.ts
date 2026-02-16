@@ -259,27 +259,34 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       // 设置为当天的开始时间，避免时间部分影响比较
       const currentDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
       
-      console.log('查找学期，当前日期:', currentDate);
-      console.log('所有学期:', currentState.semesters);
-      
       // 查找包含当前日期的学期
       const currentSemester = currentState.semesters.find((semester: Semester) => {
         // 解析开始日期
         const [startYear, startMonth, startDay] = semester.startDate.split('-').map(Number);
         const startDate = new Date(startYear, startMonth - 1, startDay);
         
-        // 解析结束日期
-        const [endYear, endMonth, endDay] = semester.endDate.split('-').map(Number);
-        const endDate = new Date(endYear, endMonth - 1, endDay);
+        // 计算学期开始是星期几 (0=周日, 1=周一, ..., 6=周六)
+        const startDayOfWeek = startDate.getDay();
         
-        console.log(`检查学期 ${semester.name}:`, startDate, endDate, currentDate);
+        // 找到学期开始的那一周的周一
+        let weekStart = new Date(startDate);
+        if (startDayOfWeek === 0) {
+          // 如果开始日期是周日，上周一就是学期开始前6天
+          weekStart.setDate(startDate.getDate() - 6);
+        } else if (startDayOfWeek !== 1) {
+          // 如果不是周一，减去(星期几-1)天得到周一
+          weekStart.setDate(startDate.getDate() - (startDayOfWeek - 1));
+        }
         
-        // 比较日期
-        return currentDate >= startDate && currentDate <= endDate;
+        // 计算学期最后一天（基于周数）
+        const lastDay = new Date(weekStart);
+        lastDay.setDate(weekStart.getDate() + semester.weekCount * 7 - 1);
+        
+        // 检查：从学期第一周的周一到最后一周的周日
+        return currentDate >= weekStart && currentDate <= lastDay;
       });
       
       if (currentSemester) {
-        console.log('找到当前学期:', currentSemester);
         return currentSemester;
       }
     } catch (error) {
@@ -347,14 +354,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
         const currentState = useSettingsStore.getState();
         const currentDate = new Date();
         
-        // 查找包含当前日期的学期
-        const currentSemester = currentState.semesters.find((semester: Semester) => {
-          const startDate = new Date(semester.startDate);
-          const endDate = new Date(semester.endDate);
-          return currentDate >= startDate && currentDate <= endDate;
-        });
-        
-        if (currentSemester) {
+        // 使用 getCurrentSemester 函数判断
+        const currentSemester = currentState.getCurrentSemester(currentDate);
+        if (currentSemester && currentSemester.id !== 'default') {
           set({ currentSemesterId: currentSemester.id });
         }
       }

@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useSettingsStore } from '../src/stores/settingsStore';
 
 export default function RootLayout() {
+  const { primaryColor } = useSettingsStore();
+  
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3498db',
+        tabBarActiveTintColor: primaryColor,
         tabBarInactiveTintColor: '#999',
         tabBarStyle: {
           backgroundColor: 'white',
