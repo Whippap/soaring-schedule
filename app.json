@@ -40,7 +40,28 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "CourseWidget",
+              "label": "课程表",
+              "description": "显示今天的课程",
+              "minWidth": "180dp",
+              "minHeight": "100dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 1,
+              "maxResizeWidth": "480dp",
+              "maxResizeHeight": "600dp",
+              "resizeMode": "both",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

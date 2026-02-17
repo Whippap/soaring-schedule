@@ -1,11 +1,12 @@
+import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import {
-    SafeAreaView,
-    StyleSheet
+  SafeAreaView,
+  StyleSheet
 } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
 import CourseForm from '../src/components/CourseForm';
 import MainView from '../src/components/MainView';
+import { useWidgetDataSync } from '../src/hooks/useWidgetDataSync';
 import { useCourseStore } from '../src/stores/courseStore';
 import { useSettingsStore } from '../src/stores/settingsStore';
 import { Course } from '../src/types';
@@ -20,6 +21,8 @@ export default function HomeScreen() {
   } = useCourseStore();
 
   const { loadSettings } = useSettingsStore();
+  
+  useWidgetDataSync();
 
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [editingCourseIndex, setEditingCourseIndex] = useState<number | null>(null);
