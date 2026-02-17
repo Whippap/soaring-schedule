@@ -3,6 +3,7 @@ import {
     SafeAreaView,
     StyleSheet
 } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import CourseForm from '../src/components/CourseForm';
 import MainView from '../src/components/MainView';
 import { useCourseStore } from '../src/stores/courseStore';
@@ -25,8 +26,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const initializeApp = async () => {
-      await loadSettings();
-      await loadData();
+      try {
+        await loadSettings();
+        await loadData();
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      } finally {
+        await SplashScreen.hideAsync();
+      }
     };
     initializeApp();
   }, [loadData, loadSettings]);

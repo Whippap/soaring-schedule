@@ -4,7 +4,7 @@
     "slug": "soaring-schedule",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/soaring_schedule_icon.jpg",
+    "icon": "./assets/images/soaring_schedule_icon.png",
     "scheme": "soaringschedule",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,6 +12,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.soaringschedule.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fcb2c727-044c-4160-8c4e-dda34edf9a8e"
+      }
     }
   }
 }
