@@ -3,7 +3,7 @@ import { Course, Semester, SectionTime } from '../types';
 import { useCourseStore } from '../stores/courseStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { saveWidgetData, WidgetCourseData } from '../utils/widgetData';
-import { updateCourseWidget } from '../../widgets/CourseWidget';
+import { updateCourseWidget } from '../../widgets/widget-task-handler';
 
 interface CourseWithTime extends Course {
   startTime: Date;
