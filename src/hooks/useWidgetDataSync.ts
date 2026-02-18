@@ -120,7 +120,8 @@ export function useWidgetDataSync() {
       todayCourses: relevantCourses as Course[],
       date: currentDate.toISOString(),
       primaryColor,
-      allTodayCourses: todayCoursesWithTime as Course[]
+      allTodayCourses: todayCoursesWithTime as Course[],
+      relevantCourses: relevantCourses as Course[]
     };
 
     saveWidgetData(widgetData);

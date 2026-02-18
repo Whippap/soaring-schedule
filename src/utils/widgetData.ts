@@ -10,6 +10,7 @@ export interface WidgetCourseData {
   date: string;
   primaryColor: string;
   allTodayCourses?: Course[];
+  relevantCourses?: Course[];
 }
 
 export async function saveWidgetData(data: WidgetCourseData) {

@@ -15,12 +15,10 @@ interface CourseWithTime extends Course {
 
 interface WidgetPreviewProps {
   courses: Course[];
-  widgetSize?: 'small' | 'medium' | 'large';
 }
 
 const WidgetPreview: React.FC<WidgetPreviewProps> = ({ 
-  courses, 
-  widgetSize = 'medium' 
+  courses 
 }) => {
   const { getCurrentSemester, primaryColor } = useSettingsStore();
   const currentDate = new Date();
@@ -127,73 +125,54 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
   const relevantCourses = getRelevantCourses(todayCoursesWithTime, currentDate);
   const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
 
-  const widgetDimensions = {
-    small: { width: 150, height: 150 },
-    medium: { width: 320, height: 150 },
-    large: { width: 320, height: 300 }
-  };
-
-  const maxCourses = {
-    small: 2,
-    medium: 3,
-    large: 5
-  };
-
-  const dimensions = widgetDimensions[widgetSize];
-  const displayCourses = relevantCourses.slice(0, maxCourses[widgetSize]);
+  const displayCourses = relevantCourses.slice(0, 3);
   const hasCourses = relevantCourses.length > 0;
 
   return (
-    <View style={[styles.widgetContainer, { width: dimensions.width, height: dimensions.height }]}>
+    <View style={styles.widgetContainer}>
       <View style={styles.widgetHeader}>
         <Text style={styles.widgetDate}>{format(currentDate, 'MM月dd日')}</Text>
         <Text style={styles.widgetWeekDay}>周{weekDays[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]}</Text>
       </View>
 
-      {widgetSize === 'small' ? (
-        <View style={styles.smallWidgetContent}>
-          <Text style={styles.smallCourseCount}>
-            {hasCourses ? `${displayCourses.length} 节课` : '今天没有课了'}
-          </Text>
-        </View>
-      ) : (
-        <View style={styles.content}>
-          {hasCourses ? (
-            <View style={styles.courseList}>
-              {displayCourses.map((course, index) => (
-                <View key={index} style={styles.courseItem}>
-                  <View 
-                    style={[styles.courseDot, { backgroundColor: course.color || primaryColor }]} 
-                  />
-                  <Text style={styles.courseName} numberOfLines={1}>
-                    {course.name}
-                  </Text>
-                  {course.location && (
-                    <Text style={styles.courseLocation} numberOfLines={1}>
-                      {course.location}
-                    </Text>
-                  )}
-                </View>
-              ))}
-              {relevantCourses.length > maxCourses[widgetSize] && (
-                <Text style={styles.moreCourses}>
-                  +{relevantCourses.length - maxCourses[widgetSize]} 更多课程
+      <View style={styles.content}>
+        {hasCourses ? (
+          <View style={styles.courseList}>
+            {displayCourses.map((course, index) => (
+              <View key={index} style={styles.courseItem}>
+                <View 
+                  style={[styles.courseDot, { backgroundColor: course.color || primaryColor }]} 
+                />
+                <Text style={styles.courseName} numberOfLines={1}>
+                  {course.name}
                 </Text>
-              )}
-            </View>
-          ) : (
-            <View style={styles.noCourseContainer}>
-              <Text style={styles.noCourseText}>今天没有课了</Text>
-            </View>
-          )}
-        </View>
-      )}
+                {course.location && (
+                  <Text style={styles.courseLocation} numberOfLines={1}>
+                    {course.location}
+                  </Text>
+                )}
+              </View>
+            ))}
+            {relevantCourses.length > 3 && (
+              <Text style={styles.moreCourses}>
+                +{relevantCourses.length - 3} 更多课程
+              </Text>
+            )}
+          </View>
+        ) : (
+          <View style={styles.noCourseContainer}>
+            <Text style={styles.noCourseText}>今天没有课了</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   widgetContainer: {
+    width: 320,
+    height: 150,
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 12,
@@ -219,16 +198,6 @@ const styles = StyleSheet.create({
   widgetWeekDay: {
     fontSize: 14,
     color: '#666'
-  },
-  smallWidgetContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  smallCourseCount: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#3498db'
   },
   content: {
     flex: 1

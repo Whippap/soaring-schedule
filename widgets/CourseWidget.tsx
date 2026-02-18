@@ -24,9 +24,9 @@ export function CourseWidget({
   const weekDayIndex = currentDate.getDay();
   const adjustedWeekDayIndex = weekDayIndex === 0 ? 6 : weekDayIndex - 1;
   
-  const allTodayCourses = data?.allTodayCourses || [];
-  const hasCourses = allTodayCourses.length > 0;
-  const displayCourses = allTodayCourses.slice(0, 3);
+  const relevantCourses = data?.relevantCourses || [];
+  const hasCourses = relevantCourses.length > 0;
+  const displayCourses = relevantCourses.slice(0, 3);
   const primaryColor = data?.primaryColor || '#3498db';
   
   const backgroundColor = isDarkMode ? '#1e1e1e' : '#ffffff';
@@ -125,7 +125,7 @@ export function CourseWidget({
               </FlexWidget>
             </FlexWidget>
           ))}
-          {allTodayCourses.length > 3 && (
+          {relevantCourses.length > 3 && (
             <FlexWidget
               style={{
                 alignItems: 'center',
@@ -133,7 +133,7 @@ export function CourseWidget({
               }}
             >
               <TextWidget
-                text={`+${allTodayCourses.length - 3} 更多课程`}
+                text={`+${relevantCourses.length - 3} 更多课程`}
                 style={{
                   fontSize: 12,
                   color: secondaryTextColor,

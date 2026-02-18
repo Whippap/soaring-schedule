@@ -24,7 +24,6 @@ const SettingsScreen = () => {
   const { courses } = useCourseStore();
   
   const [showImportWizard, setShowImportWizard] = useState(false);
-  const [selectedWidgetSize, setSelectedWidgetSize] = useState<'small' | 'medium' | 'large'>('medium');
   
   // 主题颜色选择器颜色
   const themeColors = [
@@ -134,72 +133,16 @@ const SettingsScreen = () => {
         {/* Widget 预览 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Widget 预览</Text>
-          
-          <Text style={styles.themeLabel}>选择 Widget 尺寸</Text>
-          <View style={styles.sizeSelector}>
-            <TouchableOpacity
-              style={[
-                styles.sizeButton,
-                selectedWidgetSize === 'small' && styles.selectedSizeButton
-              ]}
-              onPress={() => setSelectedWidgetSize('small')}
-            >
-              <Text
-                style={[
-                  styles.sizeButtonText,
-                  selectedWidgetSize === 'small' && styles.selectedSizeButtonText
-                ]}
-              >
-                小
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.sizeButton,
-                selectedWidgetSize === 'medium' && styles.selectedSizeButton
-              ]}
-              onPress={() => setSelectedWidgetSize('medium')}
-            >
-              <Text
-                style={[
-                  styles.sizeButtonText,
-                  selectedWidgetSize === 'medium' && styles.selectedSizeButtonText
-                ]}
-              >
-                中
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.sizeButton,
-                selectedWidgetSize === 'large' && styles.selectedSizeButton
-              ]}
-              onPress={() => setSelectedWidgetSize('large')}
-            >
-              <Text
-                style={[
-                  styles.sizeButtonText,
-                  selectedWidgetSize === 'large' && styles.selectedSizeButtonText
-                ]}
-              >
-                大
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.previewContainer}>
-            <WidgetPreview courses={courses} widgetSize={selectedWidgetSize} />
+            <WidgetPreview courses={courses} />
           </View>
           <Text style={styles.previewDescription}>
             此预览显示 Widget 在主屏幕上的显示效果
           </Text>
 
           <View style={styles.infoContainer}>
-            <Text style={styles.infoText}>• 小尺寸：显示距离当前时间最近的 2 节课</Text>
-            <Text style={styles.infoText}>• 中尺寸：显示距离当前时间最近的 3 节课</Text>
-            <Text style={styles.infoText}>• 大尺寸：显示距离当前时间最近的 5 节课</Text>
-            <Text style={styles.infoText}>• 当今天的课程全部上完时，显示"今天没有课了"</Text>
-            <Text style={styles.infoText}>• 点击 Widget 可打开应用</Text>
+            <Text style={styles.infoText}>• 显示距离当前时间最近的 3 节课</Text>
           </View>
         </View>
 
@@ -402,30 +345,6 @@ const styles = StyleSheet.create({
   importDataButton: {
     backgroundColor: '#9b59b6',
     marginTop: 10
-  },
-  sizeSelector: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20
-  },
-  sizeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center'
-  },
-  selectedSizeButton: {
-    backgroundColor: '#3498db'
-  },
-  sizeButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333'
-  },
-  selectedSizeButtonText: {
-    color: 'white'
   },
   previewContainer: {
     alignItems: 'center',
