@@ -285,8 +285,26 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
         return;
       }
       
-      // 检查时间重叠
-      const overlapCheck = checkTimeOverlap(localSectionTimes);
+      // 生成最终要保存的时间设置，确保所有时间都是正确的
+      let timesToSave = [...localSectionTimes];
+      
+      // 如果是相同时长模式，重新计算所有课节的结束时间
+      if (isSameDuration) {
+        timesToSave = timesToSave.map((time) => {
+          const [startHour, startMinute] = time.start.split(':').map(Number);
+          let endHour = startHour;
+          let endMinute = startMinute + singleDuration;
+          if (endMinute >= 60) {
+            endHour += Math.floor(endMinute / 60);
+            endMinute = endMinute % 60;
+          }
+          const computedEnd = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+          return { start: time.start, end: computedEnd };
+        });
+      }
+      
+      // 检查时间重叠（使用最终要保存的时间）
+      const overlapCheck = checkTimeOverlap(timesToSave);
       if (overlapCheck.hasOverlap) {
         Alert.alert('错误', overlapCheck.message);
         return;
@@ -294,12 +312,12 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
       
       if (onSave) {
         // 使用回调函数保存时间设置
-        onSave(localSectionTimes);
+        onSave(timesToSave);
         Alert.alert('成功', '时间设置已保存');
       } else if (semesterId) {
         // 保存所有节次的时间设置到学期
-        for (let i = 0; i < localSectionTimes.length; i++) {
-          await updateSemesterSectionTime(semesterId, i, localSectionTimes[i]);
+        for (let i = 0; i < timesToSave.length; i++) {
+          await updateSemesterSectionTime(semesterId, i, timesToSave[i]);
         }
         Alert.alert('成功', '时间设置已保存');
       }
@@ -312,7 +330,21 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
 
   const handleTimeChange = (index: number, start: string, end: string) => {
     const newTimes = [...localSectionTimes];
-    newTimes[index] = { start, end };
+    
+    if (isSameDuration) {
+      const [startHour, startMinute] = start.split(':').map(Number);
+      let endHour = startHour;
+      let endMinute = startMinute + singleDuration;
+      if (endMinute >= 60) {
+        endHour += Math.floor(endMinute / 60);
+        endMinute = endMinute % 60;
+      }
+      const computedEnd = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+      newTimes[index] = { start, end: computedEnd };
+    } else {
+      newTimes[index] = { start, end };
+    }
+    
     setLocalSectionTimes(newTimes);
   };
 
