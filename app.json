@@ -46,16 +46,6 @@
         {
           "widgets": [
             {
-              "name": "Test",
-              "label": "测试Widget",
-              "description": "简单的测试Widget",
-              "minWidth": "320dp",
-              "minHeight": "120dp",
-              "targetCellWidth": 5,
-              "targetCellHeight": 2,
-              "updatePeriodMillis": 0
-            },
-            {
               "name": "CourseWidget",
               "label": "课程表",
               "description": "显示今天的课程",
@@ -71,6 +61,7 @@
           ]
         }
       ],
+      "./plugins/withHonorWidget",
       "@react-native-community/datetimepicker"
     ],
     "experiments": {
