@@ -39,18 +39,21 @@ interface SettingsState {
   formatData: () => Promise<void>; // 调试用格式化选项
 }
 
-// 默认设置
+// 默认设置 - 长安校区课程时间
 const defaultSectionTimes: SectionTime[] = [
-  { start: '08:00', end: '08:45' },
-  { start: '08:55', end: '09:40' },
-  { start: '10:00', end: '10:45' },
-  { start: '10:55', end: '11:40' },
+  { start: '08:30', end: '09:15' },
+  { start: '09:25', end: '10:10' },
+  { start: '10:30', end: '11:15' },
+  { start: '11:25', end: '12:10' },
+  { start: '12:20', end: '13:05' },
+  { start: '13:05', end: '13:50' },
   { start: '14:00', end: '14:45' },
   { start: '14:55', end: '15:40' },
-  { start: '16:00', end: '16:45' },
+  { start: '15:55', end: '16:40' },
   { start: '16:55', end: '17:40' },
   { start: '19:00', end: '19:45' },
-  { start: '19:55', end: '20:40' }
+  { start: '19:55', end: '20:40' },
+  { start: '20:40', end: '21:25' }
 ];
 
 const SETTINGS_STORAGE_KEY = 'soaring-schedule-settings';
@@ -302,8 +305,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       startDate: `${currentYear}-01-01`,
       endDate: `${currentYear}-12-31`,
       weekCount: 52,
-      sectionCount: 10,
-      sectionTimes: defaultSectionTimes.slice(0, 10)
+      sectionCount: 13,
+      sectionTimes: defaultSectionTimes
     };
   },
   

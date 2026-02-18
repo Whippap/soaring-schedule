@@ -1,8 +1,8 @@
+import { format } from 'date-fns';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { format } from 'date-fns';
-import { Course, Semester, SectionTime } from '../types';
 import { useSettingsStore } from '../stores/settingsStore';
+import { Course, SectionTime, Semester } from '../types';
 
 interface CourseWithTime extends Course {
   startTime?: Date;
