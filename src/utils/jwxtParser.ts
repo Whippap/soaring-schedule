@@ -198,42 +198,46 @@ const chineseNumToArabic = (chineseNum: string): number => {
 
 // 分割包含多个周数范围的字符串，如 "1~2,5~8周 周二 7-8节"
 const splitByWeekRanges = (text: string): string[] => {
-  const result: string[] = [];
+  // 简单的策略：用逗号分割，然后确保每个分段都包含完整的时间信息
+  // 首先找到所有星期几的位置
+  const dayPattern = /(周一|周二|周三|周四|周五|周六|周日)/g;
+  const dayMatches: RegExpExecArray[] = [];
+  let match: RegExpExecArray | null;
   
-  // 匹配周数范围模式
-  const weekRangePattern = /(\d+[~至\-—]\d+周)/g;
-  const matches: RegExpExecArray[] = [];
-  let match;
-  
-  // 先找到所有周数范围
-  while ((match = weekRangePattern.exec(text)) !== null) {
-    matches.push(match);
+  while ((match = dayPattern.exec(text)) !== null) {
+    dayMatches.push(match);
   }
   
-  if (matches.length === 0) {
+  if (dayMatches.length === 0) {
     return [text];
   }
   
-  // 遍历每个周数范围，提取对应的时段
-  for (let i = 0; i < matches.length; i++) {
-    const currentMatch = matches[i];
-    const nextMatch = matches[i + 1];
+  // 如果只有一个星期几，但有多个逗号，说明是同一个时间有多个周数范围
+  if (dayMatches.length === 1) {
+    const dayPos = dayMatches[0].index;
+    const beforeDay = text.slice(0, dayPos).trim();
+    const afterDay = text.slice(dayPos).trim();
     
-    // 确定当前周数范围的结束位置
-    const endIndex = nextMatch ? nextMatch.index : text.length;
+    // 把前面的部分按逗号分割
+    const weekParts = beforeDay.split(/[,，]/).map(s => s.trim()).filter(s => s);
     
-    // 提取当前周数范围及其后面的时段信息
-    let partText = text.slice(currentMatch.index, endIndex).trim();
-    
-    // 移除可能存在的前导逗号
-    if (i > 0) {
-      partText = partText.replace(/^[,，]\s*/, '');
-    }
-    
-    result.push(partText);
+    // 为每个周数部分加上后面的时间信息
+    return weekParts.map(part => `${part} ${afterDay}`.trim());
   }
   
-  return result;
+  // 如果有多个星期几，正常分割
+  const result: string[] = [];
+  for (let i = 0; i < dayMatches.length; i++) {
+    const start = i === 0 ? 0 : dayMatches[i - 1].index + dayMatches[i - 1][0].length;
+    const end = i === dayMatches.length - 1 ? text.length : dayMatches[i + 1].index;
+    
+    let segment = text.slice(start, end).trim().replace(/^[,，]\s*/, '');
+    if (segment) {
+      result.push(segment);
+    }
+  }
+  
+  return result.length > 0 ? result : [text];
 };
 
 export function parseScheduleText(scheduleText: string): TimeSlot[] {
@@ -271,13 +275,24 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
       continue;
     }
 
-    const weekRangeMatch = part.match(/(\d+)[~至\-—](\d+)周/);
-    if (!weekRangeMatch) {
-      continue;
-    }
+    let startWeek: number;
+    let endWeek: number;
 
-    const startWeek = parseInt(weekRangeMatch[1]);
-    const endWeek = parseInt(weekRangeMatch[2]);
+    // 首先尝试匹配范围周数（支持后面跟着括号标记的情况）
+    let weekRangeMatch = part.match(/(\d+)[~至\-—](\d+)(?:周|\([^)]*\))/);
+    if (weekRangeMatch) {
+      startWeek = parseInt(weekRangeMatch[1]);
+      endWeek = parseInt(weekRangeMatch[2]);
+    } else {
+      // 如果没有范围周数，尝试匹配单个周数（支持后面跟着括号标记的情况）
+      const singleWeekMatch = part.match(/(\d+)(?:周|\([^)]*\))/);
+      if (singleWeekMatch) {
+        startWeek = parseInt(singleWeekMatch[1]);
+        endWeek = parseInt(singleWeekMatch[1]);
+      } else {
+        continue;
+      }
+    }
 
     const dayMatch = part.match(/(周一|周二|周三|周四|周五|周六|周日)/);
     if (!dayMatch) {
@@ -370,9 +385,9 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     }
 
     let repeatRule = RepeatRule.ALL;
-    if (part.includes('单周')) {
+    if (part.includes('单周') || part.includes('(单)')) {
       repeatRule = RepeatRule.ODD;
-    } else if (part.includes('双周')) {
+    } else if (part.includes('双周') || part.includes('(双)')) {
       repeatRule = RepeatRule.EVEN;
     }
 
