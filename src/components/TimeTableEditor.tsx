@@ -394,36 +394,44 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
       return { hours: 0, minutes: 0 };
     };
 
-    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [hasHandled, setHasHandled] = useState(false);
 
-    // 初始化选中的日期 - 手动加上8小时时区偏移
+    // 初始化选中的日期
     useEffect(() => {
       if (visible) {
         const { hours, minutes } = parseTime(value);
-        // 创建一个日期，手动加上8小时，抵消Android的时区问题
         const date = new Date();
-        date.setHours(hours + 8, minutes, 0, 0);
+        date.setHours(hours, minutes, 0, 0);
         setSelectedDate(date);
+        setHasHandled(false);
+      } else {
+        // 关闭时重置状态
+        setSelectedDate(null);
+        setHasHandled(false);
       }
     }, [visible, value]);
 
-    if (!visible) return null;
+    if (!visible || !selectedDate) return null;
 
     const handleDateChange = (event: any, date?: Date) => {
+      // 如果已经处理过了，就不再处理
+      if (hasHandled) return;
+      
       if (date) {
-        setSelectedDate(date);
-        // 手动减去8小时，抵消Android的时区问题
-        let hours = date.getHours() - 8;
-        // 确保小时数是正数
-        if (hours < 0) {
-          hours += 24;
-        }
+        // 标记为已处理，避免多次调用
+        setHasHandled(true);
+        
+        const hours = date.getHours();
         const minutes = date.getMinutes();
         const newTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        
+        // 先保存时间，再关闭
         onChange(newTime);
         onClose();
       } else {
-        // 如果用户取消选择，关闭选择器
+        // 用户取消选择
+        setHasHandled(true);
         onClose();
       }
     };
