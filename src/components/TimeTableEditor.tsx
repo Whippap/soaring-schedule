@@ -396,12 +396,12 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
 
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-    // 初始化选中的日期
+    // 初始化选中的日期 - 使用 UTC 时间避免时区问题
     useEffect(() => {
       if (visible) {
         const { hours, minutes } = parseTime(value);
-        const date = new Date();
-        date.setHours(hours, minutes, 0, 0);
+        // 使用 UTC 时间创建日期，避免时区转换问题
+        const date = new Date(Date.UTC(2000, 0, 1, hours, minutes, 0, 0));
         setSelectedDate(date);
       }
     }, [visible, value]);
@@ -411,9 +411,9 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
     const handleDateChange = (event: any, date?: Date) => {
       if (date) {
         setSelectedDate(date);
-        // 直接保存选择的时间，不需要额外的确定按钮
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
+        // 使用 getUTCHours 和 getUTCMinutes 获取正确的时间，避免时区问题
+        const hours = date.getUTCHours();
+        const minutes = date.getUTCMinutes();
         const newTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         onChange(newTime);
         onClose();
