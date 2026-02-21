@@ -20,8 +20,8 @@ const youyiTimesSummer = [
   { start: '09:00', end: '09:50' },
   { start: '10:10', end: '11:00' },
   { start: '11:10', end: '12:00' },
-  { start: '12:10', end: '13:00' },
-  { start: '13:00', end: '13:50' },
+  { start: '12:20', end: '13:05' },
+  { start: '13:05', end: '13:50' },
   { start: '14:30', end: '15:20' },
   { start: '15:30', end: '16:20' },
   { start: '16:40', end: '17:30' },
@@ -36,8 +36,8 @@ const youyiTimesWinter = [
   { start: '09:00', end: '09:50' },
   { start: '10:10', end: '11:00' },
   { start: '11:10', end: '12:00' },
-  { start: '12:10', end: '13:00' },
-  { start: '13:00', end: '13:50' },
+  { start: '12:20', end: '13:05' },
+  { start: '13:05', end: '13:50' },
   { start: '14:00', end: '14:50' },
   { start: '15:00', end: '15:50' },
   { start: '16:10', end: '17:00' },
@@ -56,7 +56,7 @@ const changAnTimes = [
   { start: '13:05', end: '13:50' },
   { start: '14:00', end: '14:45' },
   { start: '14:55', end: '15:40' },
-  { start: '15:55', end: '16:40' },
+  { start: '16:00', end: '16:45' },
   { start: '16:55', end: '17:40' },
   { start: '19:00', end: '19:45' },
   { start: '19:55', end: '20:40' },
@@ -358,52 +358,19 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
 
   const handleTimeChange = (index: number, start: string, end: string) => {
     const newTimes = [...localSectionTimes];
-    newTimes[index] = { start, end };
     
-    // 如果启用了「每节课时长相同」并且修改的是某节课的开始时间，
-    // 需要更新后续所有课程的开始时间，保持课程间的时间间隔
+    // 如果启用了「每节课时长相同」，只计算当前课程的结束时间
     if (isSameDuration) {
-      // 首先计算当前课程和前一课程之间的间隔（如果有前一课程）
-      let intervalMinutes = 10; // 默认10分钟课间休息
+      const [startHour, startMinute] = start.split(':').map(Number);
+      const endTotalMinutes = startHour * 60 + startMinute + singleDuration;
+      const endHour = Math.floor(endTotalMinutes / 60);
+      const endMin = endTotalMinutes % 60;
+      const newEnd = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
       
-      if (index > 0) {
-        // 计算前一课程的结束时间和当前课程的新开始时间之间的间隔
-        const [prevEndHour, prevEndMinute] = newTimes[index - 1].end.split(':').map(Number);
-        const [currStartHour, currStartMinute] = start.split(':').map(Number);
-        
-        const prevEndTotal = prevEndHour * 60 + prevEndMinute;
-        const currStartTotal = currStartHour * 60 + currStartMinute;
-        intervalMinutes = currStartTotal - prevEndTotal;
-        
-        // 确保间隔至少为0分钟
-        if (intervalMinutes < 0) {
-          intervalMinutes = 0;
-        }
-      }
-      
-      // 更新后续所有课程的时间 - 使用总分钟数计算，避免进位错误
-      // 首先把当前课程的开始时间转换为总分钟数
-      const [startHour, startMin] = start.split(':').map(Number);
-      let currentTotalMinutes = startHour * 60 + startMin;
-      
-      for (let i = index; i < newTimes.length; i++) {
-        // 设置当前课程的开始时间
-        const startTimeHour = Math.floor(currentTotalMinutes / 60);
-        const startTimeMin = currentTotalMinutes % 60;
-        const startTime = `${startTimeHour.toString().padStart(2, '0')}:${startTimeMin.toString().padStart(2, '0')}`;
-        
-        // 计算结束时间
-        const endTotalMinutes = currentTotalMinutes + singleDuration;
-        const endTimeHour = Math.floor(endTotalMinutes / 60);
-        const endTimeMin = endTotalMinutes % 60;
-        const endTime = `${endTimeHour.toString().padStart(2, '0')}:${endTimeMin.toString().padStart(2, '0')}`;
-        
-        // 更新当前课程
-        newTimes[i] = { start: startTime, end: endTime };
-        
-        // 计算下一课程的开始时间（当前课程结束 + 课间休息）
-        currentTotalMinutes = endTotalMinutes + intervalMinutes;
-      }
+      newTimes[index] = { start, end: newEnd };
+    } else {
+      // 如果没有启用「每节课时长相同」，直接使用用户设置的时间
+      newTimes[index] = { start, end };
     }
     
     setLocalSectionTimes(newTimes);
@@ -607,10 +574,8 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
     
     setLocalSectionTimes(newTimes);
     
-    // 重新推断时长设置
-    const durationSettings = inferDurationSettings(newTimes);
-    setIsSameDuration(durationSettings.isSameDuration);
-    setSingleDuration(durationSettings.singleDuration);
+    // 友谊校区冬季时间每节课时长不同，所以取消勾选「每节课时长相同」
+    setIsSameDuration(false);
   };
 
   const handleSingleDurationChange = (duration: number) => {
@@ -676,7 +641,7 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.infoText}>
                 <Text style={styles.infoTextContent}>点击时间可以修改每节课的开始和结束时间</Text>
-                <Text style={styles.infoTextContent}>选择「每节课时长相同」时，只需设置一节课时长，系统会自动计算所有节次时间</Text>
+                <Text style={styles.infoTextContent}>选择「每节课时长相同」时，只需设置一节课的开始时间，系统会自动计算结束时间</Text>
               </View>
 
               {/* 校区时间快速填入按钮 */}
