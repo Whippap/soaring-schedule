@@ -74,6 +74,13 @@ const extractLocationFromScheduleText = (text: string): string => {
   return '';
 };
 
+// 检查课程是否为网课的辅助函数
+const isOnlineCourse = (name: string, teacher: string, scheduleText: string): boolean => {
+  const onlineKeywords = ['网课', '在线开放课程', '在线', '网络课程', '网络', 'mooc', 'MOOC'];
+  const textToCheck = `${name} ${teacher} ${scheduleText}`.toLowerCase();
+  return onlineKeywords.some(keyword => textToCheck.includes(keyword));
+};
+
 export function parseJwxtHtml(html: string): ParsedData {
   const semesters: ParsedSemester[] = [];
   const courses: ParsedCourse[] = [];
@@ -92,6 +99,7 @@ export function parseJwxtHtml(html: string): ParsedData {
   let courseMatch;
   let courseCount = 0;
   let coursesWithLocation = 0;
+  let skippedOnlineCourses = 0;
   
   while ((courseMatch = courseRegex.exec(html)) !== null) {
     const dataSemester = courseMatch[1];
@@ -99,7 +107,21 @@ export function parseJwxtHtml(html: string): ParsedData {
     const courseName = courseMatch[3].trim();
     const courseCode = courseFullName.match(/\[([^\]]+)\]/)?.[1] || '';
     const credits = parseFloat(courseMatch[5]);
-    const teacher = courseMatch[6].trim();
+    let teacher = courseMatch[6].trim();
+    // 截取老师数量到前15人
+    const separators = ['、', '，', ','];
+    let teachers: string[] = [];
+    
+    for (const sep of separators) {
+      if (teacher.includes(sep)) {
+        teachers = teacher.split(sep).map((t) => t.trim()).filter((t) => t);
+        break;
+      }
+    }
+    
+    if (teachers.length > 15) {
+      teacher = teachers.slice(0, 15).join('、') + ' 等';
+    }
     
     // 先尝试从单独的 td 元素获取地点
     let location = courseMatch[7] ? courseMatch[7].trim() : '';
@@ -115,7 +137,10 @@ export function parseJwxtHtml(html: string): ParsedData {
     }
     courseCount++;
     
-    if (scheduleText.includes('网课')) {
+    // 检查是否为网课，如果是则跳过
+    if (isOnlineCourse(courseName, teacher, scheduleText)) {
+      console.log('跳过在线课程:', courseName);
+      skippedOnlineCourses++;
       continue;
     }
 
@@ -137,6 +162,7 @@ export function parseJwxtHtml(html: string): ParsedData {
   // 输出有用的调试信息
   console.log(`=== 课程解析完成 ===`);
   console.log(`- 找到课程总数: ${courseCount}`);
+  console.log(`- 跳过在线课程数: ${skippedOnlineCourses}`);
   console.log(`- 包含地点的课程数: ${coursesWithLocation}`);
   console.log(`- 提取到的学期数: ${semesters.length}`);
   
@@ -158,13 +184,39 @@ export function enhanceExtractedData(rawData: any): ParsedData {
   const { semesters, courses } = rawData;
   const enhancedCourses: ParsedCourse[] = [];
   let coursesWithLocation = 0;
+  let skippedOnlineCourses = 0;
   
   for (const course of courses) {
     let location = course.location || '';
+    let teacher = course.teacher || '';
+    const courseName = course.name || '';
+    const scheduleText = course.scheduleText || '';
+    
+    // 检查是否为网课，如果是则跳过
+    if (isOnlineCourse(courseName, teacher, scheduleText)) {
+      console.log('跳过在线课程:', courseName);
+      skippedOnlineCourses++;
+      continue;
+    }
     
     // 如果原始数据没有location，尝试从scheduleText中提取
     if (!location || location === '') {
-      location = extractLocationFromScheduleText(course.scheduleText || '');
+      location = extractLocationFromScheduleText(scheduleText);
+    }
+    
+    // 截取老师数量到前15人
+    const separators = ['、', '，', ','];
+    let teachers: string[] = [];
+    
+    for (const sep of separators) {
+      if (teacher.includes(sep)) {
+        teachers = teacher.split(sep).map((t) => t.trim()).filter((t) => t);
+        break;
+      }
+    }
+    
+    if (teachers.length > 15) {
+      teacher = teachers.slice(0, 15).join('、') + ' 等';
     }
     
     if (location && location.trim() !== '') {
@@ -173,12 +225,14 @@ export function enhanceExtractedData(rawData: any): ParsedData {
     
     enhancedCourses.push({
       ...course,
-      location
+      location,
+      teacher
     });
   }
   
   console.log(`=== 数据增强完成 ===`);
   console.log(`- 总课程数: ${courses.length}`);
+  console.log(`- 跳过在线课程数: ${skippedOnlineCourses}`);
   console.log(`- 包含地点的课程数: ${coursesWithLocation}`);
   
   return {
@@ -280,16 +334,25 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     let endWeek: number;
 
     // 首先尝试匹配范围周数（支持后面跟着括号标记的情况，"周" 字可选）
-    let weekRangeMatch = part.match(/(\d+)[~至\-—](\d+)(?:周|\([^)]*\))?/);
+    // 只匹配1-3位数字，避免匹配到工号等长数字
+    let weekRangeMatch = part.match(/(\d{1,3})[~至\-—](\d{1,3})(?:周|\([^)]*\))?/);
     if (weekRangeMatch) {
       startWeek = parseInt(weekRangeMatch[1]);
       endWeek = parseInt(weekRangeMatch[2]);
+      // 确保周数在合理范围内
+      if (startWeek > 53 || endWeek > 53 || startWeek < 1 || endWeek < 1) {
+        continue;
+      }
     } else {
       // 如果没有范围周数，尝试匹配单个周数（支持后面跟着括号标记的情况，"周" 字可选）
-      const singleWeekMatch = part.match(/(\d+)(?:周|\([^)]*\))?/);
+      const singleWeekMatch = part.match(/(\d{1,3})(?:周|\([^)]*\))?/);
       if (singleWeekMatch) {
         startWeek = parseInt(singleWeekMatch[1]);
         endWeek = parseInt(singleWeekMatch[1]);
+        // 确保周数在合理范围内
+        if (startWeek > 53 || endWeek > 53 || startWeek < 1 || endWeek < 1) {
+          continue;
+        }
       } else {
         continue;
       }
@@ -400,8 +463,73 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     });
   }
 
-  if (timeSlots.length === 0) {
-    timeSlots.push({
+  // 智能合并时间段：合并连续或重叠的，不合并不连续的
+  console.log('开始合并前的时间段:', timeSlots);
+  
+  // 按 dayOfWeek 和 classSections 分组
+  const groupedSlots = new Map<string, TimeSlot[]>();
+  
+  for (const slot of timeSlots) {
+    const sectionsKey = [...slot.classSections].sort((a, b) => a - b).join(',');
+    const groupKey = `${slot.dayOfWeek}-${sectionsKey}`;
+    
+    if (!groupedSlots.has(groupKey)) {
+      groupedSlots.set(groupKey, []);
+    }
+    groupedSlots.get(groupKey)!.push(slot);
+  }
+  
+  const finalTimeSlots: TimeSlot[] = [];
+  
+  // 对每个组进行智能合并
+  for (const [, slots] of groupedSlots) {
+    // 解析所有周数范围
+    const ranges: { start: number; end: number; slot: TimeSlot }[] = slots.map(slot => {
+      const [start, end] = slot.weekRange.split('-').map(Number);
+      return { start, end, slot };
+    });
+    
+    // 按开始周数排序
+    ranges.sort((a, b) => a.start - b.start);
+    
+    // 合并重叠或连续的范围
+    const mergedRanges: typeof ranges = [];
+    for (const range of ranges) {
+      if (mergedRanges.length === 0) {
+        mergedRanges.push(range);
+      } else {
+        const last = mergedRanges[mergedRanges.length - 1];
+        // 检查是否重叠或连续（新的开始 <= 上一个的结束 + 1）
+        if (range.start <= last.end + 1) {
+          // 合并
+          const mergedStart = Math.min(last.start, range.start);
+          const mergedEnd = Math.max(last.end, range.end);
+          mergedRanges[mergedRanges.length - 1] = {
+            start: mergedStart,
+            end: mergedEnd,
+            slot: {
+              ...last.slot,
+              weekRange: `${mergedStart}-${mergedEnd}`
+            }
+          };
+          console.log('合并时间段:', last.slot.weekRange, '和', range.slot.weekRange, '->', `${mergedStart}-${mergedEnd}`);
+        } else {
+          // 不连续，添加为新的
+          mergedRanges.push(range);
+        }
+      }
+    }
+    
+    // 添加合并后的时间段
+    for (const merged of mergedRanges) {
+      finalTimeSlots.push(merged.slot);
+    }
+  }
+  
+  console.log('合并后的时间段:', finalTimeSlots);
+  
+  if (finalTimeSlots.length === 0) {
+    finalTimeSlots.push({
       weekRange: '1-16',
       repeatRule: RepeatRule.ALL,
       dayOfWeek: 1,
@@ -409,7 +537,7 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     });
   }
 
-  return timeSlots;
+  return finalTimeSlots;
 }
 
 export function calculateMaxWeekFromCourses(courses: ParsedCourse[]): number {

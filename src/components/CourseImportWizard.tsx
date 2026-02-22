@@ -196,7 +196,7 @@ const CourseImportWizard: React.FC<CourseImportWizardProps> = ({
         await addCourse(course);
       }
       
-      Alert.alert('成功', `成功导入 ${courses.length} 门课程`);
+      Alert.alert('成功', `成功导入 ${courses.length} 门课程\n\n解析结果不一定全部正确，请您再次检查是否有课程缺失或时间错误。\n网课无固定上课时间，不会被导入。`);
       onClose();
     } catch (error) {
       console.error('Import error:', error);
