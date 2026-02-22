@@ -81,30 +81,21 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
   sectionCount = 10 
 }) => {
   const { height: screenHeight } = useWindowDimensions();
-  const { semesters, updateSemesterSectionTime, loadSettings } = useSettingsStore();
+  const { semesters, updateSemesterSectionTime } = useSettingsStore();
   
-  // 获取当前学期的信息
-  const getCurrentSemester = useCallback(() => {
-    return semesters.find(s => s.id === semesterId) || semesters[0];
-  }, [semesters, semesterId]);
-  
-  const getSectionCountFromSemester = useCallback(() => {
-    const semester = getCurrentSemester();
-    return semester?.sectionCount || 10;
-  }, [getCurrentSemester]);
-  
-  const getSectionTimesFromSemester = useCallback(() => {
-    const semester = getCurrentSemester();
-    return semester?.sectionTimes || [];
-  }, [getCurrentSemester]);
-  
+  // 计算实际使用的节数
   const getActualSectionCount = useCallback(() => {
-    return sectionCount || getSectionCountFromSemester();
-  }, [sectionCount, getSectionCountFromSemester]);
+    if (sectionCount) return sectionCount;
+    const semester = semesters.find(s => s.id === semesterId) || semesters[0];
+    return semester?.sectionCount || 10;
+  }, [sectionCount, semesters, semesterId]);
   
+  // 计算实际使用的时间设置
   const getActualSectionTimes = useCallback(() => {
-    return initialSectionTimes.length > 0 ? initialSectionTimes : getSectionTimesFromSemester();
-  }, [initialSectionTimes, getSectionTimesFromSemester]);
+    if (initialSectionTimes.length > 0) return initialSectionTimes;
+    const semester = semesters.find(s => s.id === semesterId) || semesters[0];
+    return semester?.sectionTimes || [];
+  }, [initialSectionTimes, semesters, semesterId]);
   
   // 从初始时间设置中推断每节课时长相同的设置和单节课时长
   const inferDurationSettings = (sectionTimes: any[]) => {
@@ -136,126 +127,101 @@ const TimeTableEditor: React.FC<TimeTableEditorProps> = ({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingType, setEditingType] = useState<'start' | 'end'>('start');
 
-  useEffect(() => {
-    if (visible) {
-      loadSettings();
-      // 当模态框打开时，加载正确的时间设置
-      let sectionTimes = getActualSectionTimes();
+  // 生成完整的课程时间列表
+  const generateSectionTimes = useCallback((count: number): any[] => {
+    let sectionTimes = changAnTimes.slice(0, count);
+    
+    if (count > changAnTimes.length) {
+      const lastTime = changAnTimes[changAnTimes.length - 1];
+      const [lastStartHour, lastStartMin] = lastTime.start.split(':').map(Number);
+      const [lastEndHour, lastEndMin] = lastTime.end.split(':').map(Number);
       
-      // 如果没有课程时间设置，根据 sectionCount 生成默认的长安校区课程时间
-      if (sectionTimes.length === 0) {
-        
-        sectionTimes = changAnTimes.slice(0, getActualSectionCount());
-        
-        // 如果需要更多时间，根据最后一个时间生成
-        if (getActualSectionCount() > changAnTimes.length) {
-          const lastTime = changAnTimes[changAnTimes.length - 1];
-          // 解析最后一个时间
-          const [lastStartHour, lastStartMin] = lastTime.start.split(':').map(Number);
-          const [lastEndHour, lastEndMin] = lastTime.end.split(':').map(Number);
-          
-          // 计算课程时长和课间休息
-          const lastStartTotal = lastStartHour * 60 + lastStartMin;
-          const lastEndTotal = lastEndHour * 60 + lastEndMin;
-          const duration = lastEndTotal - lastStartTotal;
-          
-          // 从 changAnTimes 的第2个开始计算间隔
-          let interval = 10;
-          if (changAnTimes.length >= 2) {
-            const [prevEndHour, prevEndMin] = changAnTimes[changAnTimes.length - 2].end.split(':').map(Number);
-            const [currStartHour, currStartMin] = lastTime.start.split(':').map(Number);
-            const prevEndTotal = prevEndHour * 60 + prevEndMin;
-            const currStartTotal = currStartHour * 60 + currStartMin;
-            interval = currStartTotal - prevEndTotal;
-          }
-          
-          let currentStartTotal = lastEndTotal + interval;
-          
-          for (let i = changAnTimes.length; i < getActualSectionCount(); i++) {
-            const startHour = Math.floor(currentStartTotal / 60);
-            const startMin = currentStartTotal % 60;
-            const endTotal = currentStartTotal + duration;
-            const endHour = Math.floor(endTotal / 60);
-            const endMin = endTotal % 60;
-            
-            sectionTimes.push({
-              start: `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`,
-              end: `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`
-            });
-            
-            currentStartTotal = endTotal + interval;
-          }
-        }
+      const lastStartTotal = lastStartHour * 60 + lastStartMin;
+      const lastEndTotal = lastEndHour * 60 + lastEndMin;
+      const duration = lastEndTotal - lastStartTotal;
+      
+      let interval = 10;
+      if (changAnTimes.length >= 2) {
+        const [prevEndHour, prevEndMin] = changAnTimes[changAnTimes.length - 2].end.split(':').map(Number);
+        const [currStartHour, currStartMin] = lastTime.start.split(':').map(Number);
+        const prevEndTotal = prevEndHour * 60 + prevEndMin;
+        const currStartTotal = currStartHour * 60 + currStartMin;
+        interval = currStartTotal - prevEndTotal;
       }
       
-      setLocalSectionTimes(sectionTimes);
+      let currentStartTotal = lastEndTotal + interval;
       
-      // 重新推断时长设置
-      const durationSettings = inferDurationSettings(sectionTimes);
-      setIsSameDuration(durationSettings.isSameDuration);
-      setSingleDuration(durationSettings.singleDuration);
-    }
-  }, [visible, loadSettings, initialSectionTimes, getActualSectionCount, getActualSectionTimes]);
-
-  // 当 sectionCount 变化时，调整课程时间列表
-  useEffect(() => {
-    if (visible) {
-      const currentCount = localSectionTimes.length;
-      const targetCount = getActualSectionCount();
-      
-      if (currentCount !== targetCount) {
-        let newSectionTimes = [...localSectionTimes];
+      for (let i = changAnTimes.length; i < count; i++) {
+        const startHour = Math.floor(currentStartTotal / 60);
+        const startMin = currentStartTotal % 60;
+        const endTotal = currentStartTotal + duration;
+        const endHour = Math.floor(endTotal / 60);
+        const endMin = endTotal % 60;
         
-        if (currentCount < targetCount) {
-          // 需要添加新的课程时间 - 使用长安校区的时间规律
-          
-          // 对于 i 在 changAnTimes 范围内的，直接使用长安校区的时间
-          for (let i = currentCount; i < targetCount; i++) {
-            if (i < changAnTimes.length) {
-              newSectionTimes.push(changAnTimes[i]);
-            } else {
-              // 对于超过长安校区时间数量的，根据规律生成
-              const lastTime = changAnTimes[changAnTimes.length - 1];
-              const [lastStartHour, lastStartMin] = lastTime.start.split(':').map(Number);
-              const [lastEndHour, lastEndMin] = lastTime.end.split(':').map(Number);
-              
-              // 计算课程时长和课间休息
-              const lastStartTotal = lastStartHour * 60 + lastStartMin;
-              const lastEndTotal = lastEndHour * 60 + lastEndMin;
-              const duration = lastEndTotal - lastStartTotal;
-              
-              // 计算间隔
-              const [prevEndHour, prevEndMin] = changAnTimes[changAnTimes.length - 2].end.split(':').map(Number);
-              const [currStartHour, currStartMin] = lastTime.start.split(':').map(Number);
-              const prevEndTotal = prevEndHour * 60 + prevEndMin;
-              const currStartTotal = currStartHour * 60 + currStartMin;
-              const interval = currStartTotal - prevEndTotal;
-              
-              // 计算当前要添加的课与最后一个 changAn 课之间的偏移
-              const offset = i - changAnTimes.length + 1;
-              const currentStartTotal = lastEndTotal + interval * offset + duration * (offset - 1);
-              
-              const startHour = Math.floor(currentStartTotal / 60);
-              const startMin = currentStartTotal % 60;
-              const endTotal = currentStartTotal + duration;
-              const endHour = Math.floor(endTotal / 60);
-              const endMin = endTotal % 60;
-              
-              newSectionTimes.push({
-                start: `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`,
-                end: `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`
-              });
-            }
+        sectionTimes.push({
+          start: `${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`,
+          end: `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`
+        });
+        
+        currentStartTotal = endTotal + interval;
+      }
+    }
+    
+    return sectionTimes;
+  }, []);
+
+  // 使用 useRef 来跟踪上次处理的 visible 和 sectionCount，避免重复处理
+  const lastVisible = React.useRef(false);
+  const lastSectionCount = React.useRef<number | null>(null);
+  
+  useEffect(() => {
+    const currentCount = getActualSectionCount();
+    
+    // 只有当 visible 从 false 变成 true，或者 sectionCount 实际变化时才处理
+    if (visible) {
+      if (!lastVisible.current || lastSectionCount.current !== currentCount) {
+        let sectionTimes: any[];
+        
+        const actualTimes = getActualSectionTimes();
+        if (actualTimes.length > 0 && lastVisible.current) {
+          // 如果已有时间设置，且只是修改节数，则调整现有列表
+          sectionTimes = [...actualTimes];
+          if (sectionTimes.length < currentCount) {
+            const newTimes = generateSectionTimes(currentCount);
+            sectionTimes = [...sectionTimes, ...newTimes.slice(sectionTimes.length)];
+          } else if (sectionTimes.length > currentCount) {
+            sectionTimes = sectionTimes.slice(0, currentCount);
           }
         } else {
-          // 需要删除多余的课程时间
-          newSectionTimes = newSectionTimes.slice(0, targetCount);
+          // 如果是首次打开或没有初始时间，则生成新的
+          if (actualTimes.length > 0) {
+            sectionTimes = actualTimes.slice(0, currentCount);
+            if (sectionTimes.length < currentCount) {
+              const newTimes = generateSectionTimes(currentCount);
+              sectionTimes = [...sectionTimes, ...newTimes.slice(sectionTimes.length)];
+            }
+          } else {
+            sectionTimes = generateSectionTimes(currentCount);
+          }
         }
         
-        setLocalSectionTimes(newSectionTimes);
+        setLocalSectionTimes(sectionTimes);
+        
+        // 重新推断时长设置
+        const durationSettings = inferDurationSettings(sectionTimes);
+        setIsSameDuration(durationSettings.isSameDuration);
+        setSingleDuration(durationSettings.singleDuration);
+        
+        // 更新引用
+        lastVisible.current = true;
+        lastSectionCount.current = currentCount;
       }
+    } else {
+      // 关闭时重置引用
+      lastVisible.current = false;
+      lastSectionCount.current = null;
     }
-  }, [visible, sectionCount, localSectionTimes, getActualSectionCount]);
+  }, [visible, sectionCount, getActualSectionCount, getActualSectionTimes, generateSectionTimes]);
 
   // 检查时间是否有重叠
   const checkTimeOverlap = (times: any[]): { hasOverlap: boolean, message: string } => {

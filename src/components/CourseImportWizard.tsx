@@ -404,8 +404,8 @@ const CourseImportWizard: React.FC<CourseImportWizardProps> = ({
               ...autoCreateSemester,
               id: ''
             } as Semester : undefined}
-            minWeekCount={autoCreateSemester ? minWeekCount : undefined}
-            maxSectionCount={autoCreateSemester ? maxSectionCount : undefined}
+            minWeekCount={minWeekCount}
+            maxSectionCount={maxSectionCount}
           />
         </View>
       </Modal>

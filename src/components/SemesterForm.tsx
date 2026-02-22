@@ -272,6 +272,7 @@ const SemesterForm: React.FC<SemesterFormProps> = ({
                 >
                   <Text>{semesterStartDate || '选择日期'}</Text>
                 </TouchableOpacity>
+                <Text style={styles.minWeekHint}>建议将开始时间定在周一</Text>
               </View>
 
               <View style={styles.settingItem}>

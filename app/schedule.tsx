@@ -59,8 +59,44 @@ export default function ScheduleScreen() {
 
 
 
+  const [editMinWeekCount, setEditMinWeekCount] = useState<number | undefined>();
+  const [editMaxSectionCount, setEditMaxSectionCount] = useState<number | undefined>();
+  
   const handleEditSemester = (semester: Semester) => {
     setSemesterToEdit(semester);
+    
+    // 计算最小周数和最小节数
+    const semesterCourses = courses.filter(c => c.semesterId === semester.id);
+    if (semesterCourses.length > 0) {
+      let maxWeek = 0;
+      let maxSection = 0;
+      
+      for (const course of semesterCourses) {
+        for (const slot of course.timeSlots) {
+          const weekEndMatch = slot.weekRange.match(/-([0-9]+)/);
+          if (weekEndMatch) {
+            const endWeek = parseInt(weekEndMatch[1]);
+            if (endWeek > maxWeek) {
+              maxWeek = endWeek;
+            }
+          }
+          
+          if (slot.classSections && slot.classSections.length > 0) {
+            const sectionMax = Math.max(...slot.classSections);
+            if (sectionMax > maxSection) {
+              maxSection = sectionMax;
+            }
+          }
+        }
+      }
+      
+      setEditMinWeekCount(maxWeek > 0 ? maxWeek : undefined);
+      setEditMaxSectionCount(maxSection > 0 ? maxSection : undefined);
+    } else {
+      setEditMinWeekCount(undefined);
+      setEditMaxSectionCount(undefined);
+    }
+    
     setShowSemesterForm(true);
   };
 
@@ -408,6 +444,8 @@ export default function ScheduleScreen() {
         onClose={() => setShowSemesterForm(false)}
         onSave={handleSaveSemester}
         initialSemester={semesterToEdit || undefined}
+        minWeekCount={editMinWeekCount}
+        maxSectionCount={editMaxSectionCount}
       />
 
       {/* 课程详情模态框 */}
