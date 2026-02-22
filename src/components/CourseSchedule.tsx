@@ -546,9 +546,12 @@ const CourseSchedule: React.FC<CourseScheduleProps> = ({ courses, onAddCourse, o
                         ]}
                       >
                         {!isDefaultSemester && section <= dateSectionCount && isFirstSection && course && (() => {
-                          // 找到对应的 timeSlot
+                          // 找到对应的 timeSlot，需要检查周数范围
+                          const currentWeekNum = getWeekNumberForDate(exactDate);
                           const targetSlot = course.timeSlots.find(
-                            slot => slot.dayOfWeek === dayOfWeek && slot.classSections.includes(section)
+                            slot => slot.dayOfWeek === dayOfWeek && 
+                                    slot.classSections.includes(section) &&
+                                    isWeekInRange(currentWeekNum, slot.weekRange)
                           );
                           if (targetSlot) {
                             // 计算课程块的高度
