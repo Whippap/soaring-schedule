@@ -1,4 +1,4 @@
-import { Course, AssessmentMethod, RepeatRule, TimeSlot } from '../types';
+import { AssessmentMethod, Course, RepeatRule, TimeSlot } from '../types';
 
 
 export interface ParsedSemester {
@@ -191,7 +191,8 @@ const chineseNumToArabic = (chineseNum: string): number => {
   const chineseNums: Record<string, number> = {
     '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
     '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
-    '十一': 11, '十二': 12
+    '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15,
+    '十六': 16, '十七': 17, '十八': 18, '十九': 19, '二十': 20
   };
   return chineseNums[chineseNum] || 0;
 };
@@ -278,14 +279,14 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     let startWeek: number;
     let endWeek: number;
 
-    // 首先尝试匹配范围周数（支持后面跟着括号标记的情况）
-    let weekRangeMatch = part.match(/(\d+)[~至\-—](\d+)(?:周|\([^)]*\))/);
+    // 首先尝试匹配范围周数（支持后面跟着括号标记的情况，"周" 字可选）
+    let weekRangeMatch = part.match(/(\d+)[~至\-—](\d+)(?:周|\([^)]*\))?/);
     if (weekRangeMatch) {
       startWeek = parseInt(weekRangeMatch[1]);
       endWeek = parseInt(weekRangeMatch[2]);
     } else {
-      // 如果没有范围周数，尝试匹配单个周数（支持后面跟着括号标记的情况）
-      const singleWeekMatch = part.match(/(\d+)(?:周|\([^)]*\))/);
+      // 如果没有范围周数，尝试匹配单个周数（支持后面跟着括号标记的情况，"周" 字可选）
+      const singleWeekMatch = part.match(/(\d+)(?:周|\([^)]*\))?/);
       if (singleWeekMatch) {
         startWeek = parseInt(singleWeekMatch[1]);
         endWeek = parseInt(singleWeekMatch[1]);
@@ -306,7 +307,7 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     let sectionMatch: RegExpMatchArray | null = null;
     
     // 1. 带"第"字的中文数字范围，如"第十一节~第十二节"、"第七节~第八节"
-    sectionMatch = part.match(/第(十一|十二|一|二|三|四|五|六|七|八|九|十)[节~至\-—至到]*(?:第)?(十一|十二|一|二|三|四|五|六|七|八|九|十)节/);
+    sectionMatch = part.match(/第(二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|一|二|三|四|五|六|七|八|九|十)[节~至\-—至到]*(?:第)?(二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|一|二|三|四|五|六|七|八|九|十)节/);
     if (sectionMatch) {
       const start = chineseNumToArabic(sectionMatch[1]);
       const end = chineseNumToArabic(sectionMatch[2]);
@@ -351,7 +352,7 @@ export function parseScheduleText(scheduleText: string): TimeSlot[] {
     
     // 6. 带"第"字的中文数字单节，如"第十一节"、"第一节"
     if (!sectionMatch) {
-      sectionMatch = part.match(/第(十一|十二|一|二|三|四|五|六|七|八|九|十)节/);
+      sectionMatch = part.match(/第(二十|十九|十八|十七|十六|十五|十四|十三|十二|十一|一|二|三|四|五|六|七|八|九|十)节/);
       if (sectionMatch) {
         classSections = [chineseNumToArabic(sectionMatch[1])];
       }
