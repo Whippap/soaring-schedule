@@ -96,11 +96,25 @@ const CourseList: React.FC<CourseListProps> = ({
         
         <View style={styles.timeSlotsContainer}>
           <Text style={styles.timeSlotsTitle}>时间段:</Text>
-          {item.timeSlots.map((slot, slotIndex) => (
-            <Text key={slotIndex} style={styles.timeSlot}>
-              周{slot.dayOfWeek === 7 ? '日' : slot.dayOfWeek} {slot.classSections.join(',')}节 ({slot.weekRange}周, {slot.repeatRule})
-            </Text>
-          ))}
+          <Text style={styles.timeSlot}>
+            {(() => {
+              const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+              const displaySlots = item.timeSlots.slice(0, 2);
+              let timeText = '';
+              displaySlots.forEach((slot, idx) => {
+                const dayText = weekDays[slot.dayOfWeek - 1];
+                const sectionsText = slot.classSections.join('-');
+                timeText += `周${dayText} ${sectionsText}节 (${slot.weekRange}周)`;
+                if (idx !== displaySlots.length - 1) {
+                  timeText += '、';
+                }
+              });
+              if (item.timeSlots.length > 2) {
+                timeText += '等';
+              }
+              return timeText;
+            })()}
+          </Text>
         </View>
       </TouchableOpacity>
     );

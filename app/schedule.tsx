@@ -220,7 +220,23 @@ export default function ScheduleScreen() {
           )}
           {item.timeSlots.length > 0 && (
             <Text style={styles.itemDetail}>
-              时间: 周{item.timeSlots[0].dayOfWeek} {item.timeSlots[0].classSections.join(',')}节
+              {(() => {
+                const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+                const displaySlots = item.timeSlots.slice(0, 2);
+                let timeText = '';
+                displaySlots.forEach((slot, idx) => {
+                  const dayText = weekDays[slot.dayOfWeek - 1];
+                  const sectionsText = slot.classSections.join('-');
+                  timeText += `周${dayText} ${sectionsText}节 (${slot.weekRange}周)`;
+                  if (idx !== displaySlots.length - 1) {
+                    timeText += '、';
+                  }
+                });
+                if (item.timeSlots.length > 2) {
+                  timeText += '等';
+                }
+                return `时间: ${timeText}`;
+              })()}
             </Text>
           )}
           {item.location && (
