@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { Course, Semester, SectionTime } from '../types';
 import { useCourseStore } from '../stores/courseStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -12,11 +12,55 @@ interface CourseWithTime extends Course {
     start: string;
     end: string;
   };
+  classSections: number[];
 }
 
 export function useWidgetDataSync() {
   const { courses } = useCourseStore();
   const { getCurrentSemester, primaryColor } = useSettingsStore();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const isCurrentDateInSemester = useCallback((date: Date, semester: Semester): boolean => {
+    if (semester.id === 'default') return true;
+    const [startYear, startMonth, startDay] = semester.startDate.split('-').map(Number);
+    const [endYear, endMonth, endDay] = semester.endDate.split('-').map(Number);
+    const startDate = new Date(startYear, startMonth - 1, startDay);
+    const endDate = new Date(endYear, endMonth - 1, endDay);
+    const displayDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    return displayDate >= startDate && displayDate <= endDate;
+  }, []);
+
+  const getAllCourseTimePoints = useCallback((
+    coursesWithTime: CourseWithTime[]
+  ): Date[] => {
+    const timePoints: Date[] = [];
+    coursesWithTime.forEach(course => {
+      timePoints.push(new Date(course.startTime));
+      timePoints.push(new Date(course.endTime));
+    });
+    return timePoints.sort((a, b) => a.getTime() - b.getTime());
+  }, []);
+
+  const scheduleNextUpdate = useCallback((
+    timePoints: Date[],
+    currentTime: Date
+  ) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current as NodeJS.Timeout);
+      timerRef.current = null;
+    }
+
+    const nextTimePoint = timePoints.find(time => time > currentTime);
+    
+    if (nextTimePoint) {
+      const delay = nextTimePoint.getTime() - currentTime.getTime();
+      if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+        timerRef.current = setTimeout(() => {
+          updateCourseWidget();
+        }, delay) as unknown as NodeJS.Timeout;
+      }
+    }
+  }, []);
 
   const getWeekNumberForDate = useCallback((date: Date, semester: Semester): number => {
     if (semester.id === 'default') return 1;
@@ -87,7 +131,8 @@ export function useWidgetDataSync() {
           ...course,
           startTime,
           endTime,
-          timeSlot
+          timeSlot,
+          classSections: slot.classSections
         });
       });
     });
@@ -114,17 +159,42 @@ export function useWidgetDataSync() {
     const todayCoursesWithTime = getTodayCoursesWithTime(courses, currentSemester);
     const relevantCourses = getRelevantCourses(todayCoursesWithTime, currentDate);
 
+    const serializeCourse = (course: CourseWithTime) => ({
+      ...course,
+      startTime: course.startTime.toISOString(),
+      endTime: course.endTime.toISOString()
+    });
+
     const widgetData: WidgetCourseData = {
       courses,
       currentSemester,
-      todayCourses: relevantCourses as Course[],
+      todayCourses: relevantCourses.map(serializeCourse),
       date: currentDate.toISOString(),
       primaryColor,
-      allTodayCourses: todayCoursesWithTime as Course[],
-      relevantCourses: relevantCourses as Course[]
+      allTodayCourses: todayCoursesWithTime.map(serializeCourse),
+      relevantCourses: relevantCourses.map(serializeCourse)
     };
 
     saveWidgetData(widgetData);
     updateCourseWidget();
-  }, [courses, getCurrentSemester, getTodayCoursesWithTime, getRelevantCourses, primaryColor]);
+
+    if (currentSemester && isCurrentDateInSemester(currentDate, currentSemester)) {
+      const timePoints = getAllCourseTimePoints(todayCoursesWithTime);
+      scheduleNextUpdate(timePoints, currentDate);
+    } else {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, [courses, getCurrentSemester, getTodayCoursesWithTime, getRelevantCourses, primaryColor, isCurrentDateInSemester, getAllCourseTimePoints, scheduleNextUpdate]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
 }

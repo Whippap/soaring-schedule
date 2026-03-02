@@ -11,7 +11,19 @@ interface CourseWithTime extends Course {
     start: string;
     end: string;
   };
+  classSections?: number[];
 }
+
+const formatSection = (sections: number[] | undefined): string => {
+  if (!sections || sections.length === 0) return '';
+  if (sections.length === 1) return `${sections[0]}节`;
+  return `${sections[0]}-${sections[sections.length - 1]}节`;
+};
+
+const truncateCourseName = (name: string, maxLength: number = 6): string => {
+  if (name.length <= maxLength) return name;
+  return name.substring(0, maxLength) + '...';
+};
 
 interface WidgetPreviewProps {
   courses: Course[];
@@ -90,7 +102,8 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
           ...course,
           startTime,
           endTime,
-          timeSlot
+          timeSlot,
+          classSections: slot.classSections
         });
       });
     });
@@ -139,24 +152,31 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
         {hasCourses ? (
           <View style={styles.courseList}>
             {displayCourses.map((course, index) => (
-              <View key={index} style={styles.courseItem}>
+              <View key={index} style={[styles.courseItem, { marginBottom: index < displayCourses.length - 1 ? 8 : 0 }]}>
                 <View 
-                  style={[styles.courseDot, { backgroundColor: course.color || primaryColor }]} 
+                  style={[styles.courseDot, { backgroundColor: primaryColor }]} 
                 />
-                <Text style={styles.courseName} numberOfLines={1}>
-                  {course.name}
-                </Text>
-                {course.location && (
-                  <Text style={styles.courseLocation} numberOfLines={1}>
-                    {course.location}
+                <View style={styles.courseTextContainer}>
+                  <Text style={styles.courseName} numberOfLines={1}>
+                    {truncateCourseName(course.name)}
                   </Text>
-                )}
+                  <Text style={styles.courseTime} numberOfLines={1}>
+                    {formatSection(course.classSections)} {course.timeSlot?.start || '00:00'}~{course.timeSlot?.end || '00:00'}
+                  </Text>
+                  {course.location && (
+                    <Text style={styles.courseLocation} numberOfLines={1}>
+                      {course.location}
+                    </Text>
+                  )}
+                </View>
               </View>
             ))}
             {relevantCourses.length > 3 && (
-              <Text style={styles.moreCourses}>
-                +{relevantCourses.length - 3} 更多课程
-              </Text>
+              <View style={styles.moreCoursesContainer}>
+                <Text style={styles.moreCourses}>
+                  +{relevantCourses.length - 3} more
+                </Text>
+              </View>
             )}
           </View>
         ) : (
@@ -171,8 +191,8 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
 
 const styles = StyleSheet.create({
   widgetContainer: {
-    width: 320,
-    height: 150,
+    width: 280,
+    height: 180,
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 12,
@@ -203,33 +223,48 @@ const styles = StyleSheet.create({
     flex: 1
   },
   courseList: {
-    flex: 1,
-    gap: 8
+    flex: 1
   },
   courseItem: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8
+    alignItems: 'flex-start',
+    paddingVertical: 4
   },
   courseDot: {
     width: 8,
     height: 8,
-    borderRadius: 4
+    borderRadius: 4,
+    marginTop: 4
+  },
+  courseTextContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    marginLeft: 8
   },
   courseName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#333',
-    flex: 1
+    color: '#333'
+  },
+  courseTime: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2
   },
   courseLocation: {
     fontSize: 12,
-    color: '#666'
+    color: '#666',
+    marginTop: 2
+  },
+  moreCoursesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 4
   },
   moreCourses: {
     fontSize: 12,
-    color: '#999',
-    marginTop: 4
+    color: '#999'
   },
   noCourseContainer: {
     flex: 1,

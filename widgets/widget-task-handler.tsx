@@ -5,7 +5,7 @@ import {
   type WidgetTaskHandlerProps
 } from 'react-native-android-widget';
 import { CourseWidget } from './CourseWidget';
-import { getWidgetData } from '../src/utils/widgetData';
+import { getWidgetData, type WidgetCourseData } from '../src/utils/widgetData';
 
 const nameToWidget = {
   CourseWidget: CourseWidget,
@@ -22,7 +22,7 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       try {
         const widgetData = await getWidgetData();
         const isDarkMode = await AsyncStorage.getItem('@soaring_schedule:dark_mode') === 'true';
-        props.renderWidget(<CourseWidget data={widgetData} isDarkMode={isDarkMode} />);
+        props.renderWidget(<CourseWidget data={widgetData as WidgetCourseData} isDarkMode={isDarkMode} />);
       } catch (error) {
         console.error('Error in CourseWidgetTaskHandler:', error);
         props.renderWidget(<CourseWidget />);
@@ -47,7 +47,7 @@ const CourseWidgetName = 'CourseWidget';
 
 export async function updateCourseWidget() {
   try {
-    await requestWidgetUpdate({
+    await (requestWidgetUpdate as any)({
       widgetName: CourseWidgetName,
     });
   } catch (error) {

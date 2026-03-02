@@ -3,14 +3,24 @@ import { Course, Semester } from '../types';
 
 const WIDGET_DATA_KEY = '@soaring_schedule:widget_data';
 
+export interface WidgetCourse extends Course {
+  startTime?: string;
+  endTime?: string;
+  timeSlot?: {
+    start: string;
+    end: string;
+  };
+  classSections?: number[];
+}
+
 export interface WidgetCourseData {
   courses: Course[];
   currentSemester: Semester | null;
-  todayCourses: Course[];
+  todayCourses: WidgetCourse[];
   date: string;
   primaryColor: string;
-  allTodayCourses?: Course[];
-  relevantCourses?: Course[];
+  allTodayCourses?: WidgetCourse[];
+  relevantCourses?: WidgetCourse[];
 }
 
 export async function saveWidgetData(data: WidgetCourseData) {
