@@ -21,6 +21,7 @@ export interface WidgetCourseData {
   primaryColor: string;
   allTodayCourses?: WidgetCourse[];
   relevantCourses?: WidgetCourse[];
+  emoji?: string;
 }
 
 export async function saveWidgetData(data: WidgetCourseData) {

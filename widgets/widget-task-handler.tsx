@@ -1,11 +1,11 @@
-import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
 import {
   requestWidgetUpdate,
   type WidgetTaskHandlerProps
 } from 'react-native-android-widget';
-import { CourseWidget } from './CourseWidget';
 import { getWidgetData, type WidgetCourseData } from '../src/utils/widgetData';
+import { CourseWidget } from './CourseWidget';
 
 const nameToWidget = {
   CourseWidget: CourseWidget,
@@ -19,6 +19,7 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   switch (props.widgetAction) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
+    case 'WIDGET_CLICK':
       try {
         const widgetData = await getWidgetData();
         const isDarkMode = await AsyncStorage.getItem('@soaring_schedule:dark_mode') === 'true';
@@ -33,9 +34,6 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       break;
 
     case 'WIDGET_DELETED':
-      break;
-
-    case 'WIDGET_CLICK':
       break;
 
     default:

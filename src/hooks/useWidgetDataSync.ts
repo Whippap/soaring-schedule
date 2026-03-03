@@ -1,9 +1,10 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { Course, Semester, SectionTime } from '../types';
+import { useCallback, useEffect, useRef } from 'react';
+import { updateCourseWidget } from '../../widgets/widget-task-handler';
 import { useCourseStore } from '../stores/courseStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { Course, SectionTime, Semester } from '../types';
+import { getRandomEmoji } from '../utils/emojis';
 import { saveWidgetData, WidgetCourseData } from '../utils/widgetData';
-import { updateCourseWidget } from '../../widgets/widget-task-handler';
 
 interface CourseWithTime extends Course {
   startTime: Date;
@@ -172,7 +173,8 @@ export function useWidgetDataSync() {
       date: currentDate.toISOString(),
       primaryColor,
       allTodayCourses: todayCoursesWithTime.map(serializeCourse),
-      relevantCourses: relevantCourses.map(serializeCourse)
+      relevantCourses: relevantCourses.map(serializeCourse),
+      emoji: getRandomEmoji()
     };
 
     saveWidgetData(widgetData);

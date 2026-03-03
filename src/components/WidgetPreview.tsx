@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Course, SectionTime, Semester } from '../types';
+import { getRandomEmoji } from '../utils/emojis';
 
 interface CourseWithTime extends Course {
   startTime?: Date;
@@ -137,6 +138,7 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
   const todayCoursesWithTime = getTodayCoursesWithTime();
   const relevantCourses = getRelevantCourses(todayCoursesWithTime, currentDate);
   const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+  const emoji = getRandomEmoji();
 
   const displayCourses = relevantCourses.slice(0, 2);
   const hasCourses = relevantCourses.length > 0;
@@ -147,6 +149,9 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
       <View style={styles.dateColumn}>
         <Text style={styles.widgetDate}>{format(currentDate, 'MM月dd日')}</Text>
         <Text style={styles.widgetWeekDay}>周{weekDays[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]}</Text>
+        <View style={styles.emojiContainer}>
+          <Text style={styles.widgetEmoji}>{emoji}</Text>
+        </View>
       </View>
 
       {/* Courses Column */}
@@ -222,6 +227,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 4
+  },
+  emojiContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-start'
+  },
+  widgetEmoji: {
+    fontSize: 16
   },
   coursesColumn: {
     flex: 1

@@ -191,7 +191,7 @@ const SettingsScreen = () => {
 
         {/* 版本信息 */}
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>版本 1.1.4</Text>
+          <Text style={styles.versionText}>版本 1.1.5</Text>
         </View>
       </ScrollView>
       
