@@ -37,7 +37,7 @@ export function CourseWidget({
   
   const relevantCourses = data?.relevantCourses || [];
   const hasCourses = relevantCourses.length > 0;
-  const displayCourses = relevantCourses.slice(0, 3);
+  const displayCourses = relevantCourses.slice(0, 2);
   const primaryColor = data?.primaryColor || '#3498db';
   
   const backgroundColor = isDarkMode ? '#1e1e1e' : '#ffffff';
@@ -49,20 +49,20 @@ export function CourseWidget({
       style={{
         height: 'match_parent',
         width: 'match_parent',
-        flexDirection: 'column',
+        flexDirection: 'row',
         padding: 12,
         backgroundColor,
         borderRadius: 16,
       }}
       accessibilityLabel="课程表 Widget"
     >
-      {/* Header */}
+      {/* Date Column */}
       <FlexWidget
         style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 8,
+          width: 80,
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          marginRight: 8,
         }}
       >
         <TextWidget
@@ -78,111 +78,114 @@ export function CourseWidget({
           style={{
             fontSize: 14,
             color: secondaryTextColor,
+            marginTop: 4,
           }}
         />
       </FlexWidget>
 
-      {/* Main Content */}
-      {hasCourses ? (
-        <FlexWidget
-          style={{
-            flex: 1,
-            flexDirection: 'column',
-          }}
-        >
-          {displayCourses.map((course, index) => (
-            <FlexWidget
-              key={index}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                paddingVertical: 4,
-                marginBottom: index < displayCourses.length - 1 ? 8 : 0,
-              }}
-            >
+      {/* Courses Column */}
+      <FlexWidget
+        style={{
+          flex: 1,
+          flexDirection: 'column',
+        }}
+      >
+        {hasCourses ? (
+          <>
+            {displayCourses.map((course, index) => (
               <FlexWidget
+                key={index}
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: primaryColor as any,
-                  marginTop: 4,
-                }}
-              />
-              <FlexWidget
-                style={{
-                  flex: 1,
-                  flexDirection: 'column',
-                  marginLeft: 8,
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  paddingVertical: 4,
+                  marginBottom: index < displayCourses.length - 1 ? 8 : 0,
                 }}
               >
-                <TextWidget
-                  text={truncateCourseName(course.name)}
+                <FlexWidget
                   style={{
-                    fontSize: 14,
-                    fontWeight: '500',
-                    color: textColor,
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: primaryColor as any,
+                    marginTop: 4,
                   }}
                 />
-                <TextWidget
-                  text={`${formatSection(course.classSections)} ${course.timeSlot?.start || '00:00'}~${course.timeSlot?.end || '00:00'}`}
+                <FlexWidget
                   style={{
-                    fontSize: 12,
-                    color: secondaryTextColor,
-                    marginTop: 2,
+                    flex: 1,
+                    flexDirection: 'column',
+                    marginLeft: 8,
                   }}
-                />
-                {course.location && (
+                >
                   <TextWidget
-                    text={course.location}
+                    text={truncateCourseName(course.name)}
+                    style={{
+                      fontSize: 14,
+                      fontWeight: '500',
+                      color: textColor,
+                    }}
+                  />
+                  <TextWidget
+                    text={`${formatSection(course.classSections)} ${course.timeSlot?.start || '00:00'}~${course.timeSlot?.end || '00:00'}`}
                     style={{
                       fontSize: 12,
                       color: secondaryTextColor,
                       marginTop: 2,
                     }}
                   />
-                )}
+                  {course.location && (
+                    <TextWidget
+                      text={course.location}
+                      style={{
+                        fontSize: 12,
+                        color: secondaryTextColor,
+                        marginTop: 2,
+                      }}
+                    />
+                  )}
+                </FlexWidget>
               </FlexWidget>
-            </FlexWidget>
-          ))}
-          {relevantCourses.length > 3 && (
-            <FlexWidget
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginTop: 4,
-              }}
-            >
-              <TextWidget
-                text={`+${relevantCourses.length - 3} more`}
+            ))}
+            {relevantCourses.length > 2 && (
+              <FlexWidget
                 style={{
-                  fontSize: 12,
-                  color: secondaryTextColor,
+                  flexDirection: 'row',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginTop: 4,
                 }}
-              />
-            </FlexWidget>
-          )}
-        </FlexWidget>
-      ) : (
-        <FlexWidget
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <TextWidget
-            text="今天没有课了"
+              >
+                <TextWidget
+                  text={`+${relevantCourses.length - 2} more`}
+                  style={{
+                    fontSize: 12,
+                    color: secondaryTextColor,
+                  }}
+                />
+              </FlexWidget>
+            )}
+          </>
+        ) : (
+          <FlexWidget
             style={{
-              fontSize: 18,
-              fontWeight: '500',
-              color: secondaryTextColor,
-              textAlign: 'center',
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
-          />
-        </FlexWidget>
-      )}
+          >
+            <TextWidget
+              text="今天没有课了"
+              style={{
+                fontSize: 18,
+                fontWeight: '500',
+                color: secondaryTextColor,
+                textAlign: 'center',
+              }}
+            />
+          </FlexWidget>
+        )}
+      </FlexWidget>
     </FlexWidget>
   );
 }

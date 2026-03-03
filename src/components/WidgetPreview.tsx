@@ -138,19 +138,21 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
   const relevantCourses = getRelevantCourses(todayCoursesWithTime, currentDate);
   const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
 
-  const displayCourses = relevantCourses.slice(0, 3);
+  const displayCourses = relevantCourses.slice(0, 2);
   const hasCourses = relevantCourses.length > 0;
 
   return (
     <View style={styles.widgetContainer}>
-      <View style={styles.widgetHeader}>
+      {/* Date Column */}
+      <View style={styles.dateColumn}>
         <Text style={styles.widgetDate}>{format(currentDate, 'MM月dd日')}</Text>
         <Text style={styles.widgetWeekDay}>周{weekDays[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]}</Text>
       </View>
 
-      <View style={styles.content}>
+      {/* Courses Column */}
+      <View style={styles.coursesColumn}>
         {hasCourses ? (
-          <View style={styles.courseList}>
+          <>
             {displayCourses.map((course, index) => (
               <View key={index} style={[styles.courseItem, { marginBottom: index < displayCourses.length - 1 ? 8 : 0 }]}>
                 <View 
@@ -171,14 +173,14 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
                 </View>
               </View>
             ))}
-            {relevantCourses.length > 3 && (
+            {relevantCourses.length > 2 && (
               <View style={styles.moreCoursesContainer}>
                 <Text style={styles.moreCourses}>
-                  +{relevantCourses.length - 3} more
+                  +{relevantCourses.length - 2} more
                 </Text>
               </View>
             )}
-          </View>
+          </>
         ) : (
           <View style={styles.noCourseContainer}>
             <Text style={styles.noCourseText}>今天没有课了</Text>
@@ -202,13 +204,14 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e0e0e0'
+    borderColor: '#e0e0e0',
+    flexDirection: 'row'
   },
-  widgetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8
+  dateColumn: {
+    width: 80,
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
+    marginRight: 8
   },
   widgetDate: {
     fontSize: 16,
@@ -217,12 +220,10 @@ const styles = StyleSheet.create({
   },
   widgetWeekDay: {
     fontSize: 14,
-    color: '#666'
+    color: '#666',
+    marginTop: 4
   },
-  content: {
-    flex: 1
-  },
-  courseList: {
+  coursesColumn: {
     flex: 1
   },
   courseItem: {

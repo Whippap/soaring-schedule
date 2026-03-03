@@ -142,7 +142,7 @@ const SettingsScreen = () => {
           </Text>
 
           <View style={styles.infoContainer}>
-            <Text style={styles.infoText}>• 显示距离当前时间最近的 3 节课</Text>
+            <Text style={styles.infoText}>• 显示距离当前时间最近的 2 节课</Text>
           </View>
         </View>
 
