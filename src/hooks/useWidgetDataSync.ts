@@ -3,7 +3,6 @@ import { updateCourseWidget } from '../../widgets/widget-task-handler';
 import { useCourseStore } from '../stores/courseStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Course, SectionTime, Semester } from '../types';
-import { getRandomEmoji } from '../utils/emojis';
 import { saveWidgetData, WidgetCourseData } from '../utils/widgetData';
 
 interface CourseWithTime extends Course {
@@ -173,8 +172,7 @@ export function useWidgetDataSync() {
       date: currentDate.toISOString(),
       primaryColor,
       allTodayCourses: todayCoursesWithTime.map(serializeCourse),
-      relevantCourses: relevantCourses.map(serializeCourse),
-      emoji: getRandomEmoji()
+      relevantCourses: relevantCourses.map(serializeCourse)
     };
 
     saveWidgetData(widgetData);

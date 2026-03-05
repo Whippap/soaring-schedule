@@ -1,9 +1,7 @@
-import { format } from 'date-fns';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Course, SectionTime, Semester } from '../types';
-import { getRandomEmoji } from '../utils/emojis';
 
 interface CourseWithTime extends Course {
   startTime?: Date;
@@ -137,27 +135,15 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
 
   const todayCoursesWithTime = getTodayCoursesWithTime();
   const relevantCourses = getRelevantCourses(todayCoursesWithTime, currentDate);
-  const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
-  const emoji = getRandomEmoji();
 
   const displayCourses = relevantCourses.slice(0, 2);
   const hasCourses = relevantCourses.length > 0;
 
   return (
     <View style={styles.widgetContainer}>
-      {/* Date Column */}
-      <View style={styles.dateColumn}>
-        <Text style={styles.widgetDate}>{format(currentDate, 'MM月dd日')}</Text>
-        <Text style={styles.widgetWeekDay}>周{weekDays[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]}</Text>
-        <View style={styles.emojiContainer}>
-          <Text style={styles.widgetEmoji}>{emoji}</Text>
-        </View>
-      </View>
-
-      {/* Courses Column */}
-      <View style={styles.coursesColumn}>
+      <View style={styles.content}>
         {hasCourses ? (
-          <>
+          <View style={styles.courseList}>
             {displayCourses.map((course, index) => (
               <View key={index} style={[styles.courseItem, { marginBottom: index < displayCourses.length - 1 ? 8 : 0 }]}>
                 <View 
@@ -185,7 +171,7 @@ const WidgetPreview: React.FC<WidgetPreviewProps> = ({
                 </Text>
               </View>
             )}
-          </>
+          </View>
         ) : (
           <View style={styles.noCourseContainer}>
             <Text style={styles.noCourseText}>今天没有课了</Text>
@@ -209,34 +195,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    flexDirection: 'row'
+    borderColor: '#e0e0e0'
   },
-  dateColumn: {
-    width: 80,
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    marginRight: 8
+  content: {
+    flex: 1
   },
-  widgetDate: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333'
-  },
-  widgetWeekDay: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4
-  },
-  emojiContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-start'
-  },
-  widgetEmoji: {
-    fontSize: 16
-  },
-  coursesColumn: {
+  courseList: {
     flex: 1
   },
   courseItem: {
