@@ -2,9 +2,8 @@ import { useCallback, useEffect, useRef } from 'react';
 import { updateCourseWidget } from '../../widgets/widget-task-handler';
 import { useCourseStore } from '../stores/courseStore';
 import { useSettingsStore } from '../stores/settingsStore';
-import { Course, SectionTime, Semester } from '../types';
-import { getRandomEmoji } from '../utils/emojis';
-import { saveWidgetData, WidgetCourseData } from '../utils/widgetData';
+import { Course, RepeatRule, SectionTime, Semester } from '../types';
+import { saveWidgetData, WidgetDataSnapshot } from '../utils/widgetData';
 
 interface CourseWithTime extends Course {
   startTime: Date;
@@ -18,7 +17,7 @@ interface CourseWithTime extends Course {
 
 export function useWidgetDataSync() {
   const { courses } = useCourseStore();
-  const { getCurrentSemester, primaryColor } = useSettingsStore();
+  const { getCurrentSemester, primaryColor, semesters, currentSemesterId } = useSettingsStore();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const isCurrentDateInSemester = useCallback((date: Date, semester: Semester): boolean => {
@@ -86,6 +85,13 @@ export function useWidgetDataSync() {
     }
   }, []);
 
+  const matchesRepeatRule = useCallback((weekNum: number, repeatRule: RepeatRule | string | undefined): boolean => {
+    if (!repeatRule || repeatRule === RepeatRule.ALL) return true;
+    if (repeatRule === RepeatRule.ODD) return weekNum % 2 === 1;
+    if (repeatRule === RepeatRule.EVEN) return weekNum % 2 === 0;
+    return true;
+  }, []);
+
   const parseTime = useCallback((timeStr: string, date: Date): Date => {
     const [hours, minutes] = timeStr.split(':').map(Number);
     const result = new Date(date);
@@ -123,6 +129,7 @@ export function useWidgetDataSync() {
       course.timeSlots.forEach(slot => {
         if (slot.dayOfWeek !== dayOfWeek) return;
         if (!isWeekInRange(weekNum, slot.weekRange)) return;
+        if (!matchesRepeatRule(weekNum, slot.repeatRule)) return;
 
         const timeSlot = getTimeSlotForSection(slot.classSections, currentSemester.sectionTimes);
         const startTime = parseTime(timeSlot.start, today);
@@ -139,57 +146,39 @@ export function useWidgetDataSync() {
     });
 
     return coursesWithTime;
-  }, [getWeekNumberForDate, isWeekInRange, getTimeSlotForSection, parseTime]);
-
-  const getRelevantCourses = useCallback((
-    coursesWithTime: CourseWithTime[],
-    currentTime: Date
-  ): CourseWithTime[] => {
-    const now = currentTime;
-
-    const ongoingOrFutureCourses = coursesWithTime.filter(course => course.endTime > now);
-
-    ongoingOrFutureCourses.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-
-    return ongoingOrFutureCourses;
-  }, []);
+  }, [getWeekNumberForDate, isWeekInRange, matchesRepeatRule, getTimeSlotForSection, parseTime]);
 
   useEffect(() => {
-    const currentDate = new Date();
-    const currentSemester = getCurrentSemester(currentDate);
-    const todayCoursesWithTime = getTodayCoursesWithTime(courses, currentSemester);
-    const relevantCourses = getRelevantCourses(todayCoursesWithTime, currentDate);
+    const syncWidget = async () => {
+      try {
+        const currentDate = new Date();
+        const currentSemester = getCurrentSemester(currentDate);
+        const todayCoursesWithTime = getTodayCoursesWithTime(courses, currentSemester);
 
-    const serializeCourse = (course: CourseWithTime) => ({
-      ...course,
-      startTime: course.startTime.toISOString(),
-      endTime: course.endTime.toISOString()
-    });
+        const widgetSnapshot: WidgetDataSnapshot = {
+          courses,
+          semesters,
+          currentSemesterId,
+          primaryColor,
+        };
 
-    const widgetData: WidgetCourseData = {
-      courses,
-      currentSemester,
-      todayCourses: relevantCourses.map(serializeCourse),
-      date: currentDate.toISOString(),
-      primaryColor,
-      allTodayCourses: todayCoursesWithTime.map(serializeCourse),
-      relevantCourses: relevantCourses.map(serializeCourse),
-      emoji: getRandomEmoji()
+        await saveWidgetData(widgetSnapshot);
+        await updateCourseWidget();
+
+        if (currentSemester && isCurrentDateInSemester(currentDate, currentSemester)) {
+          const timePoints = getAllCourseTimePoints(todayCoursesWithTime);
+          scheduleNextUpdate(timePoints, currentDate);
+        } else if (timerRef.current) {
+          clearTimeout(timerRef.current);
+          timerRef.current = null;
+        }
+      } catch (error) {
+        console.error('Failed to sync widget data:', error);
+      }
     };
 
-    saveWidgetData(widgetData);
-    updateCourseWidget();
-
-    if (currentSemester && isCurrentDateInSemester(currentDate, currentSemester)) {
-      const timePoints = getAllCourseTimePoints(todayCoursesWithTime);
-      scheduleNextUpdate(timePoints, currentDate);
-    } else {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-  }, [courses, getCurrentSemester, getTodayCoursesWithTime, getRelevantCourses, primaryColor, isCurrentDateInSemester, getAllCourseTimePoints, scheduleNextUpdate]);
+    void syncWidget();
+  }, [courses, currentSemesterId, getCurrentSemester, getTodayCoursesWithTime, primaryColor, semesters, isCurrentDateInSemester, getAllCourseTimePoints, scheduleNextUpdate]);
 
   useEffect(() => {
     return () => {

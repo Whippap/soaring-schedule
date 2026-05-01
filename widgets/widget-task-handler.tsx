@@ -1,11 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   requestWidgetUpdate,
   type WidgetTaskHandlerProps
 } from 'react-native-android-widget';
-import { getWidgetData, type WidgetCourseData } from '../src/utils/widgetData';
 import { CourseWidget } from './CourseWidget';
+import { getWidgetData, type WidgetCourseData } from '../src/utils/widgetData';
 
 const nameToWidget = {
   CourseWidget: CourseWidget,
@@ -13,20 +13,22 @@ const nameToWidget = {
 
 export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
   const widgetInfo = props.widgetInfo;
-  const Widget =
-    nameToWidget[widgetInfo.widgetName as keyof typeof nameToWidget];
+  const Widget = nameToWidget[widgetInfo.widgetName as keyof typeof nameToWidget];
+
+  if (!Widget) {
+    return;
+  }
 
   switch (props.widgetAction) {
     case 'WIDGET_ADDED':
     case 'WIDGET_UPDATE':
-    case 'WIDGET_CLICK':
       try {
         const widgetData = await getWidgetData();
         const isDarkMode = await AsyncStorage.getItem('@soaring_schedule:dark_mode') === 'true';
-        props.renderWidget(<CourseWidget data={widgetData as WidgetCourseData} isDarkMode={isDarkMode} />);
+        props.renderWidget(<Widget data={widgetData as WidgetCourseData} isDarkMode={isDarkMode} />);
       } catch (error) {
         console.error('Error in CourseWidgetTaskHandler:', error);
-        props.renderWidget(<CourseWidget />);
+        props.renderWidget(<Widget />);
       }
       break;
 
@@ -34,6 +36,16 @@ export async function widgetTaskHandler(props: WidgetTaskHandlerProps) {
       break;
 
     case 'WIDGET_DELETED':
+      break;
+
+    case 'WIDGET_CLICK':
+      try {
+        const widgetData = await getWidgetData();
+        const isDarkMode = await AsyncStorage.getItem('@soaring_schedule:dark_mode') === 'true';
+        props.renderWidget(<Widget data={widgetData as WidgetCourseData} isDarkMode={isDarkMode} />);
+      } catch (error) {
+        console.error('Error refreshing widget on click:', error);
+      }
       break;
 
     default:

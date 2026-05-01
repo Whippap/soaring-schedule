@@ -2,18 +2,19 @@
   "expo": {
     "name": "翱翔课表",
     "slug": "soaring-schedule",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "orientation": "portrait",
     "icon": "./assets/images/soaring_schedule_icon.png",
     "scheme": "soaringschedule",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.soaringschedule.app"
     },
     "android": {
       "package": "com.soaringschedule.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -56,7 +57,7 @@
               "maxResizeWidth": "350dp",
               "maxResizeHeight": "200dp",
               "resizeMode": "none",
-              "updatePeriodMillis": 1800000
+              "updatePeriodMillis": 3600000
             }
           ]
         }

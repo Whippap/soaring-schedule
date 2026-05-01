@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CourseImportWizard from '../src/components/CourseImportWizard';
@@ -191,7 +191,7 @@ const SettingsScreen = () => {
 
         {/* 版本信息 */}
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>版本 1.1.5</Text>
+          <Text style={styles.versionText}>版本 1.1.6</Text>
         </View>
       </ScrollView>
       
